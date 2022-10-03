@@ -28,5 +28,3 @@ def menu():
 if __name__ == "__main__":
     menu()
     print("Hello World")
-    print("Bye World")
-    print("See you world")
