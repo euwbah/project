@@ -77,22 +77,56 @@ def test():
     # ***************** check_victory ***************** #
     print()
     
+    # trivial case, no victory for anyone
     board = [1,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     if check_victory(board, 1)==0: print("test check_victory 1 - OK !")
     else: print("test check_victory 1 - Problem in the check_victory function output !")
     
+    # player 1 just moved, victory for player 1
+    # 0 0 0 0 0 0 0
+    # 0 0 0 0 0 0 0
+    # 2 0 0 0 0 0 0
+    # 2 0 0 0 0 0 0
+    # 2 0 0 0 0 0 0
+    # 1 1 1 1 0 0 0
     board = [1,1,1,1,0,0,0,  2,0,0,0,0,0,0,  2,0,0,0,0,0,0,  2,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     if check_victory(board, 1)==1: print("test check_victory 2 - OK !")
     else: print("test check_victory 2 - Problem in the check_victory function output !")
     
+    # player 2 just moved, victory for player 2
+    # 0 0 0 0 0 0 0
+    # 0 0 0 0 0 0 0
+    # 2 0 0 0 0 0 0
+    # 2 0 0 0 0 0 0
+    # 2 1 0 0 0 0 0
+    # 2 1 1 1 0 0 0
     board = [2,1,1,1,0,0,0,  2,1,0,0,0,0,0,  2,0,0,0,0,0,0,  2,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     if check_victory(board, 2)==2: print("test check_victory 3 - OK !")
     else: print("test check_victory 3 - Problem in the check_victory function output !")
     
+    # player 1 just moved, victory for player 2
+    # ----------------------------------------------------------------------------------
+    # NOTE: According to telegram chat, if some player somehow makes a move such that  |
+    # the board would be in a winning position for BOTH players (e.g. via a pop move), |
+    # the player that made the move LOSES.                                             |
+    # ----------------------------------------------------------------------------------
+    # 0 0 0 0 0 0 0
+    # 0 0 0 0 0 0 0
+    # 1 2 0 0 0 0 0
+    # 1 2 0 0 0 0 0
+    # 1 2 0 0 0 0 0
+    # 1 2 0 0 0 0 0
     board = [1,2,0,0,0,0,0,  1,2,0,0,0,0,0,  1,2,0,0,0,0,0,  1,2,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     if check_victory(board, 1)==2: print("test check_victory 4 - OK !")
     else: print("test check_victory 4 - Problem in the check_victory function output !")
     
+    # player 1 just moved, diagonal victory for player 1
+    # 0 0 0 0 0 0 0
+    # 0 0 0 0 0 0 0
+    # 0 0 0 1 0 0 0
+    # 0 0 1 2 0 0 0
+    # 0 1 2 1 0 0 0
+    # 1 2 2 2 0 0 0
     board = [1,2,2,2,0,0,0,  0,1,2,1,0,0,0,  0,0,1,2,0,0,0,  0,0,0,1,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     if check_victory(board, 1)==1: print("test check_victory 5 - OK !")
     else: print("test check_victory 5 - Problem in the check_victory function output !")
