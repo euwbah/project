@@ -1,3 +1,4 @@
+from calendar import c
 import os
 import random
 import math
@@ -317,19 +318,120 @@ def find_immediate_win(board: List[int], turn: int) -> Optional[Tuple[int, bool]
     return None
 
 
+def find_immediate_win_multiple(board: List[int], turn: int) -> List[Tuple[int, bool]]:
+    '''
+    Finds a list of all the legal moves that can be made by current player's `turn` that will
+    immediately win the game for the current player.
+
+    ### Arguments
+
+    - `board`: The current state of the board
+    - `turn`: Which player to find winning moves for.
+
+    ### Returns
+
+    A list of `[(column: int, pop: bool)]` tuples, each one representing a possible winning move.
+    There may be 0, 1, or many winning moves, depending on the board.
+    '''
+
+    winning_moves = []
+
+    for col in range(COLS):
+        for pop in [True, False]:
+            if not check_move(board, col, turn, pop):
+                continue
+
+            board_copy = apply_move(board, turn, col, pop)
+
+            if check_victory(board_copy, turn) == turn:
+                # Found a winning move, append it to the list
+                winning_moves.append((col, pop))
+    
+    # No winning moves
+    return winning_moves
+
+
 def eval_cps(board: List[int]) -> float:
     '''
     Evaluates the CPS score metric (see README.md)
-
+    
     This metric is stateless and doesn't depend on whose turn it is
     currently. It measures the winning opportunities of each player 
     (Noughts winning will contribute a positive score, crosses winning
     will contribute a negative score)
+
+    ### Arguments
+
+    - `board`: The current state of the board
     '''
 
     '''
-    Naive brute force method: 
+    Naive brute force method:
+
+    Give Nought 3 free moves.
+    
+    For every move where Nought can win within the 1st free move, add 1000 points.
+    If within the 2nd free move, add 100 points.
+    If within the 3rd free move, add 10 points.
+
+    Similarly, give Cross 3 free moves (reset the board state to the input argument).
+
+    Subtract 1000, 100, and 10 points for every move where Cross can win within the 1st, 2nd, and 3rd 
+    free move respectively (just as above).
+
+    The final score tally represents who is winning.
+
+    Note: this is computationally heavy as there are 14^3 = 2744 permutations of 3 free moves.
     '''
+
+    tally = 0
+
+    def recurse_free_moves(board: List[int], depth_remaining: int, turn: int) -> float:
+        '''
+        Recursively iterates through all permutations of free moves and returns CPS score obtained by
+        current iteration.
+
+        ### Arguments
+
+        - `board`: The current state of the board
+        - `depth_remaining`: How many free moves are left to be made (1 represents last free move, terminate recursion)
+        - `turn`: Which player is to make the free moves
+
+        ### Returns
+
+        Positive/absolute CPS score obtained by current iteration.
+        '''
+
+        assert depth_remaining > 0
+        
+        # Find all immediately winning moves for current player
+
+        winning_moves = find_immediate_win_multiple(board, turn)
+        cps = 10 ** depth_remaining * len(winning_moves)
+
+        # Iterate legal moves and recurse each scenario
+
+        if depth_remaining == 1:
+            # No deeper recursion, return CPS score
+            return cps
+
+        for col in range(COLS):
+            for pop in [True, False]:
+                if not check_move(board, col, turn, pop):
+                    continue
+
+                board_copy = apply_move(board, turn, col, pop)
+                cps += recurse_free_moves(board_copy, depth_remaining - 1, turn)
+
+        return cps
+
+    tally += recurse_free_moves(board, 3, NOUGHTS)
+    tally -= recurse_free_moves(board, 3, CROSSES)
+
+    return tally
+
+
+
 
 def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
     '''
@@ -353,6 +455,11 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
     assert 1 <= level <= 4, "Invalid computer level"
     assert 1 <= turn <= 2, "Unsupported player number"
 
+
+    # ==========================================
+    #          LEVEL 1: Random move
+    # ==========================================
+
     if level == 1:
         # Trivial. Just make any legal random move.
         cols = [col for col in range(COLS)]
@@ -374,6 +481,9 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
 
         raise RuntimeError("Unhandled stalemate. Computer has no moves.")
 
+    # ==========================================
+    #     LEVEL 2: Immediate win/no loss
+    # ==========================================
     elif level == 2:
         # Somewhat trivial, just make a move that doesn't directly allow the opponent to win the game, and wins
         # if an almost-win board state is reached. (Use brute-force)
@@ -422,12 +532,39 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
         
         # If code reached here, it is an uncaught stalemate.
         raise RuntimeError("Unhandled stalemate. Computer has no moves.")
-        
+
+    # ==========================================
+    #        LEVEL 3: CPS heuristic
+    # ==========================================
     elif level == 3:
+        best_move_so_far = None
+        best_score_so_far = -math.inf
+
         # (Optional) Use the CPS metric. Choose the move that maximizes CPS for the computer player.
-        pass
+        for col in cols:
+            can_drop = check_move(board, col, turn, False)
+            can_pop = check_move(board, col, turn, True)
+
+            if can_drop:
+                # check that a drop move won't result in immediate win for opponent.
+                board_copy = apply_move(board, turn, col, False)
+                if cps := eval_cps(board_copy) > best_score_so_far:
+                    best_score_so_far = cps
+                    best_move_so_far = (col, False)
+            
+            if can_pop:
+                board_copy = apply_move(board, turn, col, True)
+                if cps := eval_cps(board_copy) > best_score_so_far:
+                    best_score_so_far = cps
+                    best_move_so_far = (col, True)
+        
+        if best_move_so_far is not None:
+            return best_move_so_far
+
+        # If code reached here, it is an uncaught stalemate.
+        raise RuntimeError("Unhandled stalemate. Computer has no moves.")
     elif level == 4:
-        # (Optional) Use the CPS 
+        # (Optional) Use min-max. Use CPS metric as scoring system for min-max algorithm.
         pass
     return (0,False)
 
