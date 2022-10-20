@@ -1,5 +1,8 @@
+import os
 import random
 import math
+from shutil import copyfile
+import shutil
 from typing import List, Optional, Tuple
 
 '''
@@ -14,9 +17,9 @@ NOTE 2: Since all functions are immutable/have no side effects, this should be a
 '''
 
 # Enumerating player color and number.
-# Yellow goes first.
-YELLOW = 1
-RED = 2
+# Noughts goes first.
+NOUGHTS = 1 # (Yellow)
+CROSSES = 2 # (Red)
 
 COLS = 7 # There's always 7 columns according to implementation notes.
 
@@ -37,7 +40,7 @@ def next_player(who_played: int) -> int:
 
     assert 1 <= who_played <= 2, 'Unsupported player'
 
-    return YELLOW if who_played == RED else RED
+    return NOUGHTS if who_played == CROSSES else CROSSES
 
 
 def check_move(board: List[int], turn: int, col: int, pop: bool) -> bool:
@@ -140,8 +143,8 @@ def check_victory(board: List[int], who_played: int) -> int:
     #
     #       this also means we cannot do early termination unless we reach a case where
     #       both players wins, then the result is fully certain.
-    yellow_wins = False
-    red_wins = False
+    noughts_wins = False
+    crosses_wins = False
     num_rows = len(board) // COLS
 
     # Check horizontals (left to right)
@@ -156,19 +159,19 @@ def check_victory(board: List[int], who_played: int) -> int:
             piece = board[row * 7 + col]
             if piece != streak_piece: # streak is broken
                 if streak_piece != 0 and col - index_of_streak_start + 1 == 4:
-                    if streak_piece == YELLOW:
-                        yellow_wins = True
-                    elif streak_piece == RED: # redundant elif, but here for future-proofing multiplayers if needed.
-                        red_wins = True
+                    if streak_piece == NOUGHTS:
+                        noughts_wins = True
+                    elif streak_piece == CROSSES: # redundant elif, but here for future-proofing multiplayers if needed.
+                        crosses_wins = True
                 index_of_streak_start = col # reset streak index
                 streak_piece = piece
         
         # Check if row ended with a winning streak:
         if streak_piece != 0 and 6 + 1 - index_of_streak_start == 4:
-            if streak_piece == YELLOW:
-                yellow_wins = True
-            elif streak_piece == RED:
-                red_wins = True
+            if streak_piece == NOUGHTS:
+                noughts_wins = True
+            elif streak_piece == CROSSES:
+                crosses_wins = True
     
     # Checking verticals and diagonals only make sense if num_rows >= 4
     if num_rows >= 4:
@@ -184,19 +187,19 @@ def check_victory(board: List[int], who_played: int) -> int:
                 piece = board[row * 7 + col]
                 if piece != streak_piece:
                     if streak_piece != 0 and row - index_of_streak_start + 1 == 4:
-                        if streak_piece == YELLOW:
-                            yellow_wins = True
-                        elif streak_piece == RED:
-                            red_wins = True
+                        if streak_piece == NOUGHTS:
+                            noughts_wins = True
+                        elif streak_piece == CROSSES:
+                            crosses_wins = True
                     index_of_streak_start = row
                     streak_piece = piece
 
             # Check if end of column has a winning streak:
             if streak_piece != 0 and 5 + 1 - index_of_streak_start == 4:
-                if streak_piece == YELLOW:
-                    yellow_wins = True
-                elif streak_piece == RED:
-                    red_wins = True
+                if streak_piece == NOUGHTS:
+                    noughts_wins = True
+                elif streak_piece == CROSSES:
+                    crosses_wins = True
 
         # Check up-left diagonals (bottom-right to top-left)
         
@@ -215,20 +218,20 @@ def check_victory(board: List[int], who_played: int) -> int:
                 piece = board[(row + diagonal_idx) * 7 + col - diagonal_idx]
                 if piece != streak_piece:
                     if streak_piece != 0 and diagonal_idx - index_of_streak_start + 1 == 4:
-                        if streak_piece == YELLOW:
-                            yellow_wins = True
-                        elif streak_piece == RED:
-                            red_wins = True
+                        if streak_piece == NOUGHTS:
+                            noughts_wins = True
+                        elif streak_piece == CROSSES:
+                            crosses_wins = True
                     index_of_streak_start = diagonal_idx
                     streak_piece = piece
                 diagonal_idx += 1
 
             # Check if the last few pieces are a winning streak:
             if streak_piece != 0 and num_rows - row - index_of_streak_start == 4:
-                if streak_piece == YELLOW:
-                    yellow_wins = True
-                elif streak_piece == RED:
-                    red_wins = True
+                if streak_piece == NOUGHTS:
+                    noughts_wins = True
+                elif streak_piece == CROSSES:
+                    crosses_wins = True
 
         # Check up-right diagonals (top-right to bottom-left)
 
@@ -247,27 +250,27 @@ def check_victory(board: List[int], who_played: int) -> int:
                 piece = board[(row + diagonal_idx) * 7 + col + diagonal_idx]
                 if piece != streak_piece:
                     if streak_piece != 0 and diagonal_idx - index_of_streak_start + 1 == 4:
-                        if streak_piece == YELLOW:
-                            yellow_wins = True
-                        elif streak_piece == RED:
-                            red_wins = True
+                        if streak_piece == NOUGHTS:
+                            noughts_wins = True
+                        elif streak_piece == CROSSES:
+                            crosses_wins = True
                     index_of_streak_start = diagonal_idx
                     streak_piece = piece
                 diagonal_idx += 1
 
             # Check if the last few pieces are a winning streak:
             if streak_piece != 0 and num_rows - row - index_of_streak_start == 4:
-                if streak_piece == YELLOW:
-                    yellow_wins = True
-                elif streak_piece == RED:
-                    red_wins = True
+                if streak_piece == NOUGHTS:
+                    noughts_wins = True
+                elif streak_piece == CROSSES:
+                    crosses_wins = True
 
-    if yellow_wins and red_wins:
+    if noughts_wins and crosses_wins:
         return next_player(who_played)
-    elif yellow_wins:
-        return YELLOW
-    elif red_wins:
-        return RED
+    elif noughts_wins:
+        return NOUGHTS
+    elif crosses_wins:
+        return CROSSES
     
     return 0 # nobody wins
 
@@ -407,7 +410,36 @@ def display_board(board: List[int]):
     '''
     Takes in the board state and displays it by any means.
     '''
-    pass
+    num_rows = len(board) // COLS
+    file_index = 1000 # trailing zeroes required as windows sort 111 as 'smaller than' 2 even though 111 > 2
+
+    # Clear the meme board
+    for fname in os.listdir('epic_board'):
+        path = os.path.join('epic_board', fname)
+        os.remove(path)
+    
+    print("col: 0 1 2 3 4 5 6")
+    print()
+    for row in range(num_rows - 1, -1, -1): # the 'first' row represents the bottom, so start from the 'last' row
+        for col in range(COLS):
+            # Trivial display: done in terminal
+            # Meme display: done in file explorer in epic_board/ directory.
+            #               pieces are displayed as image files.
+            piece = board[row * COLS + col]
+            print("    ", end="")
+            if piece == 0:
+                print(" .", end="")
+                copyfile("imgs/blank.png", f"epic_board/{file_index}.png")
+            elif piece == NOUGHTS:
+                print(" O", end="")
+                copyfile("imgs/yellow.png", f"epic_board/{file_index}.png")
+            elif piece == CROSSES:
+                print(" X", end="")
+                copyfile("imgs/red.png", f"epic_board/{file_index}.png")
+            
+            file_index += 1
+
+        print()
 
 
 def menu():
@@ -452,4 +484,6 @@ def menu():
 
 if __name__ == "__main__":
     menu()
-    print("Hello World")
+    print(os.getcwd())
+    board = [1,2,0,0,0,0,0,  1,2,0,0,0,0,0,  1,2,0,0,0,0,0,  1,2,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
+    display_board(board)
