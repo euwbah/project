@@ -418,23 +418,23 @@ def display_board(board: List[int]):
         path = os.path.join('epic_board', fname)
         os.remove(path)
     
-    print("col: 0 1 2 3 4 5 6")
+    print("col:  0  1  2  3  4  5  6")
     print()
     for row in range(num_rows - 1, -1, -1): # the 'first' row represents the bottom, so start from the 'last' row
+        print("    ", end="")
         for col in range(COLS):
             # Trivial display: done in terminal
             # Meme display: done in file explorer in epic_board/ directory.
             #               pieces are displayed as image files.
             piece = board[row * COLS + col]
-            print("    ", end="")
             if piece == 0:
-                print(" .", end="")
+                print("  .", end="")
                 copyfile("imgs/blank.png", f"epic_board/{file_index}.png")
             elif piece == NOUGHTS:
-                print(" O", end="")
+                print("  O", end="")
                 copyfile("imgs/yellow.png", f"epic_board/{file_index}.png")
             elif piece == CROSSES:
-                print(" X", end="")
+                print("  X", end="")
                 copyfile("imgs/red.png", f"epic_board/{file_index}.png")
             
             file_index += 1
