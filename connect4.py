@@ -1,6 +1,6 @@
 import random
 import math
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 '''
 NOTE 1: The `board` list that represents board state will have 7 * c elements,
@@ -20,6 +20,25 @@ RED = 2
 
 COLS = 7 # There's always 7 columns according to implementation notes.
 
+def next_player(who_played: int) -> int:
+    '''
+    Returns the next player/opponent given the current player.
+
+    ### Arguments
+
+    - `who_played`: The current player
+
+    ### Returns
+
+    The next player ID.
+    '''
+
+    # NOTE: no support for >= 3 players yet
+
+    assert 1 <= who_played <= 2, 'Unsupported player'
+
+    return YELLOW if who_played == RED else RED
+
 def check_move(board: List[int], turn: int, col: int, pop: bool) -> bool:
     '''
     Checks if a certain move is valid given a `board` state. Returns whether or not move is valid.
@@ -34,6 +53,7 @@ def check_move(board: List[int], turn: int, col: int, pop: bool) -> bool:
         `True` if move is valid, `False` otherwise
     '''
     return True
+
 
 def apply_move(board: List[int], turn: int, col: int, pop: bool) -> List[int]:
     '''
@@ -52,6 +72,7 @@ def apply_move(board: List[int], turn: int, col: int, pop: bool) -> List[int]:
         The new board state (list of ints)
     '''
     return board.copy()
+
 
 def check_victory(board: List[int], who_played: int) -> int:
     '''
@@ -75,6 +96,8 @@ def check_victory(board: List[int], who_played: int) -> int:
         I.e. you lose if you make a move that would win the game for your opponent, even
         if it is also winning for yourself.
     '''
+
+    assert 1 <= who_played <= 2, "Unsupported player number"
 
     # NOTE: these two have to be separate variables as we have to consider
     #       the case where both players win and we have to confer the win to the
@@ -205,15 +228,44 @@ def check_victory(board: List[int], who_played: int) -> int:
                     red_wins = True
 
     if yellow_wins and red_wins:
-        # returns the opponent of `who_played`, if 2 => 1, if 1 => 2.
-        # XXX: This won't work for >= 3 player mode
-        return 3 - who_played
+        return next_player(who_played)
     elif yellow_wins:
         return YELLOW
     elif red_wins:
         return RED
     
-    return 0
+    return 0 # nobody wins
+
+
+def find_immediate_win(board: List[int], turn: int) -> Optional[Tuple[int, bool]]:
+    '''
+    Finds a legal move that can be made by current player's `turn` that will
+    immediately win the game for the current player.
+
+    ### Arguments
+
+    - `board`: The current state of the board
+    - `turn`: Which player to find winning moves for.
+
+    ### Returns
+
+    Either `(column: int, pop: bool)` if such a winning move can be found or
+    `None` if no such move can be found.
+    '''
+    for col in range(COLS):
+        for pop in [True, False]:
+            if not check_move(board, col, turn, pop):
+                continue
+
+            board_copy = apply_move(board, turn, col, pop)
+
+            if check_victory(board_copy, turn) == turn:
+                # Found a winning move, return it.
+                return col, pop
+    
+    # No winning moves
+    return None
+
 
 def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
     '''
@@ -224,19 +276,100 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
         - `board`: the board state
         - `turn`: the player number of which the computer is supposed to make a move for.
         - `level`: the difficulty level of the computer.
-            - 1: Trivial. 
 
     ### Returns
         A tuple of the form `(col, pop)`, where `col` is the column to drop/pop the piece,
         and `pop` is `True` if pop, `False` if drop.
     '''
+
+    assert 1 <= level <= 4, "Invalid computer level"
+    assert 1 <= turn <= 2, "Unsupported player number"
+
+    if level == 1:
+        # Trivial. Just make any legal random move.
+        cols = [col for col in range(COLS)]
+        random.shuffle(cols)
+
+        for col in cols:
+            # This code is horribly inperformant but whatever.
+            can_drop = check_move(board, col, turn, False)
+            can_pop = check_move(board, col, turn, True)
+            if can_drop and can_pop:
+                return col, random.choice([True, False])
+            elif can_drop:
+                return col, False
+            elif can_pop:
+                return col, True
+        
+        # If code reached here, then it is a stalemate. However, this should never happen.
+        # Stalemate should be checked before any move is made by any player or computer.
+
+        raise RuntimeError("Unhandled stalemate. Computer has no moves.")
+
+    elif level == 2:
+        # Somewhat trivial, just make a move that doesn't directly allow the opponent to win the game, and wins
+        # if an almost-win board state is reached. (Use brute-force)
+
+        # Brute force all legal moves (up to 14 of them only) to see if any of them immediately wins:
+
+        if winning_move := find_immediate_win(board, turn) is not None:
+            return winning_move
+        
+        # Otherwise, make any random move that doesn't allow opponent to immediately win.
+
+        cols = [col for col in range(COLS)]
+        random.shuffle(cols)
+
+        # Keeps track of the last legal move found:
+        last_legal_move = None
+
+        for col in cols:
+            can_drop = check_move(board, col, turn, False)
+            can_pop = check_move(board, col, turn, True)
+
+            if can_drop:
+                # NOTE: This naive 'AI' will prefer making drops over pops.
+
+                last_legal_move = (col, False)
+
+                # check that a drop move won't result in immediate win for opponent.
+                board_copy = apply_move(board, turn, col, False)
+                if find_immediate_win(board_copy, next_player(turn)) is None:
+                    # If no immediate win for opponent, then this move is fine. Return it.
+                    return col, False
+            
+            if can_pop:
+                last_legal_move = (col, True)
+
+                # check that a pop move won't result in immediate win for opponent.
+                board_copy = apply_move(board, turn, col, True)
+                if find_immediate_win(board_copy, next_player(turn)) is None:
+                    # If no immediate win for opponent, then this move is fine. Return it
+                    return col, True
+        
+        if last_legal_move is not None:
+            # If code reached here, then the computer is zugzwanged. Return the last legal move found.
+            # Admit defeat.
+            return last_legal_move
+        
+        # If code reached here, it is an uncaught stalemate.
+        raise RuntimeError("Unhandled stalemate. Computer has no moves.")
+        
+    elif level == 3:
+        # (Optional) Use the CPS metric. Choose the move that maximizes CPS for the computer player.
+        pass
+    elif level == 4:
+        # (Optional) Use the CPS 
+        pass
     return (0,False)
-    
+
+
 def display_board(board: List[int]):
     '''
     Takes in the board state and displays it by any means.
     '''
     pass
+
 
 def menu():
     '''
@@ -262,7 +395,7 @@ def menu():
     4. Apply the obtained move using `apply_move()`
 
     5. Repeat the 1-4 for player 2, then alternate between the 2 players, 
-      until `check_victory()` returns a non-zero value.
+      until `check_victory()` returns a non-zero value, or until `check_stalemate()` returns `True`.
 
     -----
 
@@ -274,7 +407,7 @@ def menu():
     3. If computer's turn, evaluate `computer_move()` to obtain the best move to make.
     4. If player's turn, go through move-making subroutine to obtain move from player.
     5. Apply the obtained move using `apply_move()`
-    6. Repeat 1-5 until `check_victory()` returns a non-zero value.
+    6. Repeat 1-5 until `check_victory()` returns a non-zero value, or `check_stalemate()` returns `True`.
     '''
     pass
 

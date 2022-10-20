@@ -41,7 +41,7 @@ Here, even though Cross has 2 connected pieces, the position is not only neutral
    `o o o x o x x`
    `x x o o x o x`
 
-Here, we have an almost-win state for Nought. Nought is allowed to drop 4th column since the 4th column has a `o` at the bottom, but Cross can prevent that by dropping 2nd column, which breaks the potential horizontal connection formed if Nought were to drop on 4th. This is not functionally different from the situation in Scenario 1 where one player is in an almost-win configuration and the opposition has only one or two moves to neutralize it. Hence, CPS here is 1000 in favour of Noughts.
+Here, we have an almost-win state for Nought. Nought is allowed to pop 4th column since the 4th column has a `o` at the bottom, but Cross can prevent that by popping 2nd column, which breaks the potential horizontal connection formed if Nought were to pop the 4th column. This is not functionally different from the situation in Scenario 1 where one player is in an almost-win configuration and the opposition has only one or two moves to neutralize it. Hence, CPS here is 1000 in favour of Noughts.
 
 #### Takeaway
 
