@@ -39,9 +39,15 @@ def next_player(who_played: int) -> int:
 
     return YELLOW if who_played == RED else RED
 
+
 def check_move(board: List[int], turn: int, col: int, pop: bool) -> bool:
     '''
     Checks if a certain move is valid given a `board` state. Returns whether or not move is valid.
+
+    A valid move entails:
+    - Dropping a piece in a column that is not already full
+    - Popping a piece from a column of which the bottom piece belongs to the current player
+      AND isn't empty.
 
     ### Arguments
         - `board`: the board state
@@ -52,8 +58,37 @@ def check_move(board: List[int], turn: int, col: int, pop: bool) -> bool:
     ### Returns
         `True` if move is valid, `False` otherwise
     '''
+    # Checking whether column is valid is to be done in the menu game UI code, not here.
+    # If user-input is out-of-bounds here, this is an unexpected error.
+    assert 0 <= col < COLS, 'Invalid column'
     return True
 
+
+def check_stalemate(board: List[int], turn: int) -> bool:
+    '''
+    Checks if the given player is in a stalemate (has no legal moves left).
+
+    This will only return `True` in the very rare case that the board is full AND
+    all the pieces at the bottom are the opponent's pieces, not allowing the current
+    player to pop or drop anything. However it's still a probable case, so it should
+    be accounted for.
+
+    ### Arguments
+
+    - `board`: The current state of the board
+    - `turn`: Which player to check for stalemate
+
+    ### Returns
+
+    `True` if current `turn` player has no legal moves left. `False` otherwise.
+    '''
+    for col in range(COLS):
+        for pop in [True, False]:
+            if check_move(board, turn, col, pop):
+                return False
+    
+    return True
+    
 
 def apply_move(board: List[int], turn: int, col: int, pop: bool) -> List[int]:
     '''
@@ -280,6 +315,10 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
     ### Returns
         A tuple of the form `(col, pop)`, where `col` is the column to drop/pop the piece,
         and `pop` is `True` if pop, `False` if drop.
+
+    ### Raises
+        - `AssertionError` if `level` is not within 1-4.
+        - `RuntimeError` if the computer cannot find a legal move to make (unhandled stalemate)
     '''
 
     assert 1 <= level <= 4, "Invalid computer level"
