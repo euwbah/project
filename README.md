@@ -53,3 +53,4 @@ Hence, CPS is meant to serve as a measure of opportunities of winning assuming b
 
 #### Implementation
 
+An opportunity to win in 1 free move is worth 1000 points, and an opportunity to win in 2 free moves is worth 100 points, and finally winning in 3 free moves is worth 10 points.

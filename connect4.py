@@ -61,9 +61,19 @@ def check_move(board: List[int], turn: int, col: int, pop: bool) -> bool:
     ### Returns
         `True` if move is valid, `False` otherwise
     '''
+
     # Checking whether column is valid is to be done in the menu game UI code, not here.
     # If user-input is out-of-bounds here, this is an unexpected error.
     assert 0 <= col < COLS, 'Invalid column'
+
+    num_rows = len(board)//7
+
+    if board[col] != 0 and pop == False:
+        return False
+        
+    if board[(num_rows - 1) * COLS + col] == turn and pop == True:
+        return False
+    
     return True
 
 
@@ -109,7 +119,9 @@ def apply_move(board: List[int], turn: int, col: int, pop: bool) -> List[int]:
     ### Returns
         The new board state (list of ints)
     '''
-    return board.copy()
+    board_copy = board.copy()
+    #here (estimate 21 lines)
+    return board_copy
 
 
 def check_victory(board: List[int], who_played: int) -> int:
@@ -304,6 +316,20 @@ def find_immediate_win(board: List[int], turn: int) -> Optional[Tuple[int, bool]
     # No winning moves
     return None
 
+
+def eval_cps(board: List[int]) -> float:
+    '''
+    Evaluates the CPS score metric (see README.md)
+
+    This metric is stateless and doesn't depend on whose turn it is
+    currently. It measures the winning opportunities of each player 
+    (Noughts winning will contribute a positive score, crosses winning
+    will contribute a negative score)
+    '''
+
+    '''
+    Naive brute force method: 
+    '''
 
 def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
     '''
