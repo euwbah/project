@@ -18,6 +18,8 @@ NOTE 2: Since all functions are immutable/have no side effects, this should be a
 YELLOW = 1
 RED = 2
 
+COLS = 7 # There's always 7 columns according to implementation notes.
+
 def check_move(board: List[int], turn: int, col: int, pop: bool) -> bool:
     '''
     Checks if a certain move is valid given a `board` state. Returns whether or not move is valid.
@@ -71,9 +73,147 @@ def check_victory(board: List[int], who_played: int) -> int:
         the OPPONENT player. The player who just made such a move loses.
 
         I.e. you lose if you make a move that would win the game for your opponent, even
-        if it is winning for yourself.
+        if it is also winning for yourself.
     '''
-    return -1
+
+    # NOTE: these two have to be separate variables as we have to consider
+    #       the case where both players win and we have to confer the win to the
+    #       opponent of `who_played`.
+    #
+    #       this also means we cannot do early termination unless we reach a case where
+    #       both players wins, then the result is fully certain.
+    yellow_wins = False
+    red_wins = False
+    num_rows = len(board) // COLS
+
+    # Check horizontals (left to right)
+    for row in range(num_rows):
+        # Check if there are 4 consecutive pieces of the same color
+        # in a row.
+
+        streak_piece = 0 # the current player number which has N pieces in a row. 0 means no player.
+        index_of_streak_start = 0 # the beginning index of the N pieces in a row
+
+        for col in range(COLS):
+            piece = board[row * 7 + col]
+            if piece != streak_piece: # streak is broken
+                if streak_piece != 0 and col - index_of_streak_start + 1 == 4:
+                    if streak_piece == YELLOW:
+                        yellow_wins = True
+                    elif streak_piece == RED: # redundant elif, but here for future-proofing multiplayers if needed.
+                        red_wins = True
+                index_of_streak_start = col # reset streak index
+                streak_piece = piece
+        
+        # Check if row ended with a winning streak:
+        if streak_piece != 0 and 6 + 1 - index_of_streak_start == 4:
+            if streak_piece == YELLOW:
+                yellow_wins = True
+            elif streak_piece == RED:
+                red_wins = True
+    
+    # Checking verticals and diagonals only make sense if num_rows >= 4
+    if num_rows >= 4:
+        # Check verticals (bottom to top)
+        for col in range(COLS):
+            # Check if there are 4 consecutive pieces of the same color
+            # in a column.
+
+            streak_piece = 0
+            index_of_streak_start = 0
+
+            for row in range(num_rows):
+                piece = board[row * 7 + col]
+                if piece != streak_piece:
+                    if streak_piece != 0 and row - index_of_streak_start + 1 == 4:
+                        if streak_piece == YELLOW:
+                            yellow_wins = True
+                        elif streak_piece == RED:
+                            red_wins = True
+                    index_of_streak_start = row
+                    streak_piece = piece
+
+            # Check if end of column has a winning streak:
+            if streak_piece != 0 and 5 + 1 - index_of_streak_start == 4:
+                if streak_piece == YELLOW:
+                    yellow_wins = True
+                elif streak_piece == RED:
+                    red_wins = True
+
+        # Check up-left diagonals (bottom-right to top-left)
+        
+        # contains all starting bottom-right points such that diagonals have at least
+        # 4 pieces in them.
+        starting_coords = [(0, x) for x in range(3, COLS)]
+        starting_coords += [(x, COLS - 1) for x in range(1, num_rows - 3)]
+
+        # traverse one diagonal at a time from the above starting points
+        for row, col in starting_coords:
+            streak_piece = 0
+            index_of_streak_start = 0
+            diagonal_idx = 0 # The (n+1)th piece of the current diagonal
+
+            while row + diagonal_idx < num_rows and col - diagonal_idx >= 0:
+                piece = board[(row + diagonal_idx) * 7 + col - diagonal_idx]
+                if piece != streak_piece:
+                    if streak_piece != 0 and diagonal_idx - index_of_streak_start + 1 == 4:
+                        if streak_piece == YELLOW:
+                            yellow_wins = True
+                        elif streak_piece == RED:
+                            red_wins = True
+                    index_of_streak_start = diagonal_idx
+                    streak_piece = piece
+                diagonal_idx += 1
+
+            # Check if the last few pieces are a winning streak:
+            if streak_piece != 0 and num_rows - row - index_of_streak_start == 4:
+                if streak_piece == YELLOW:
+                    yellow_wins = True
+                elif streak_piece == RED:
+                    red_wins = True
+
+        # Check up-right diagonals (top-right to bottom-left)
+
+        # similar to above, contains all starting bottom-left points such that diagonals have at least
+        # 4 pieces in them.
+
+        starting_coords = [(0, x) for x in range(COLS - 4, -1, -1)]
+        starting_coords += [(x, 0) for x in range(1, num_rows - 3)]
+
+        for row, col in starting_coords:
+            streak_piece = 0
+            index_of_streak_start = 0
+            diagonal_idx = 0
+
+            while row + diagonal_idx < num_rows and col + diagonal_idx < COLS:
+                piece = board[(row + diagonal_idx) * 7 + col + diagonal_idx]
+                if piece != streak_piece:
+                    if streak_piece != 0 and diagonal_idx - index_of_streak_start + 1 == 4:
+                        if streak_piece == YELLOW:
+                            yellow_wins = True
+                        elif streak_piece == RED:
+                            red_wins = True
+                    index_of_streak_start = diagonal_idx
+                    streak_piece = piece
+                diagonal_idx += 1
+
+            # Check if the last few pieces are a winning streak:
+            if streak_piece != 0 and num_rows - row - index_of_streak_start == 4:
+                if streak_piece == YELLOW:
+                    yellow_wins = True
+                elif streak_piece == RED:
+                    red_wins = True
+
+    if yellow_wins and red_wins:
+        # returns the opponent of `who_played`, if 2 => 1, if 1 => 2.
+        # XXX: This won't work for >= 3 player mode
+        return 3 - who_played
+    elif yellow_wins:
+        return YELLOW
+    elif red_wins:
+        return RED
+    
+    return 0
 
 def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
     '''
