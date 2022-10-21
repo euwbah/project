@@ -431,6 +431,19 @@ def eval_cps(board: List[int]) -> float:
     return tally
 
 
+def check_board_empty(board: List[int]) -> bool:
+    '''
+    Checks if the board is empty (no pieces on the board)
+
+    ### Arguments
+
+    - `board`: The current state of the board
+
+    ### Returns
+
+    True if the board is empty, False otherwise.
+    '''
+    return all(piece == 0 for piece in board)
 
 
 def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
@@ -537,10 +550,15 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
     #        LEVEL 3: CPS heuristic
     # ==========================================
     elif level == 3:
+        # (Optional) Use the CPS metric. Choose the move that maximizes CPS for the computer player.
+
+        if check_board_empty(board):
+            # If board is empty, always play drop center column, that is always the best opening move.
+            return (COLS - 1) // 2, False
+
         best_move_so_far = None
         best_score_so_far = -math.inf
 
-        # (Optional) Use the CPS metric. Choose the move that maximizes CPS for the computer player.
         for col in cols:
             can_drop = check_move(board, col, turn, False)
             can_pop = check_move(board, col, turn, True)
@@ -565,6 +583,12 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
         raise RuntimeError("Unhandled stalemate. Computer has no moves.")
     elif level == 4:
         # (Optional) Use min-max. Use CPS metric as scoring system for min-max algorithm.
+        
+        if check_board_empty(board):
+            # If board is empty, always play drop center column, that is always the best opening move.
+            return (COLS - 1) // 2, False
+        
+        
         pass
     return (0,False)
 
