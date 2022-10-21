@@ -587,8 +587,7 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
         if check_board_empty(board):
             # If board is empty, always play drop center column, that is always the best opening move.
             return (COLS - 1) // 2, False
-        
-        
+
         pass
     return (0,False)
 
