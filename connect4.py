@@ -109,7 +109,7 @@ def apply_move(board: List[int], turn: int, col: int, pop: bool) -> List[int]:
     Applies a given move to the board. Returns the new board state.
 
     This is an **immutable** function with NO SIDE EFFECTS, i.e. the list
-    referred to by the `board` variable is not modified.
+    referred to by the `board` variable is not modified. if-else loop. 1) drop 2) pop
 
     ### Arguments
         - `board`: the board state
@@ -120,8 +120,23 @@ def apply_move(board: List[int], turn: int, col: int, pop: bool) -> List[int]:
     ### Returns
         The new board state (list of ints)
     '''
-    board_copy = board.copy()
-    #here (estimate 21 lines)
+    board_copy = board.copy() #board_tmp = board.copy()
+    num_rows = len(board)//7
+    if pop == False:
+        if turn == 1:
+            while col+7 < num_rows*7 and board_copy[col] != 0:
+                col += 7
+            board_copy[col] = NOUGHTS # basically means the placing will have a circle. or maybe instead of 1 put x?
+        elif turn == 2:
+            while col+7 < num_rows*7 and board_copy[col] != 0:
+                col += 7
+            board_copy[col] = CROSSES #check if write nought or cross or numbers
+    
+    if pop == True: 
+         while board_copy[col] != 0:
+            board_copy[col] = board_copy[col+7] #copy number
+            col += 7
+        
     return board_copy
 
 
