@@ -246,7 +246,7 @@ def check_victory(board: List[int], who_played: int) -> int:
                 elif streak_piece == CROSSES:
                     crosses_wins = True
 
-        # Check up-right diagonals (top-right to bottom-left)
+        # Check up-right diagonals (bottom-left to top-right)
 
         # similar to above, contains all starting bottom-left points such that diagonals have at least
         # 4 pieces in them.
