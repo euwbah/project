@@ -318,7 +318,7 @@ def find_immediate_win(board: List[int], turn: int) -> Optional[Tuple[int, bool]
     '''
     for col in range(COLS):
         for pop in [True, False]:
-            if not check_move(board, col, turn, pop):
+            if not check_move(board, turn, col, pop):
                 continue
 
             board_copy = apply_move(board, turn, col, pop)
@@ -351,7 +351,7 @@ def find_immediate_win_multiple(board: List[int], turn: int) -> List[Tuple[int, 
 
     for col in range(COLS):
         for pop in [True, False]:
-            if not check_move(board, col, turn, pop):
+            if not check_move(board, turn, col, pop):
                 continue
 
             board_copy = apply_move(board, turn, col, pop)
@@ -430,7 +430,7 @@ def eval_cps(board: List[int]) -> float:
 
         for col in range(COLS):
             for pop in [True, False]:
-                if not check_move(board, col, turn, pop):
+                if not check_move(board, turn, col, pop):
                     continue
 
                 board_copy = apply_move(board, turn, col, pop)
@@ -527,7 +527,7 @@ def decide_minimax_move(board: List[int], turn: int) -> Tuple[int, Optional[bool
 
         for col in range(COLS):
             for pop in [True, False]:
-                if not check_move(board, col, turn, pop):
+                if not check_move(board, turn, col, pop):
                     continue
 
                 board_copy = apply_move(board, turn, col, pop)
@@ -598,8 +598,8 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
 
         for col in cols:
             # This code is horribly inperformant but whatever.
-            can_drop = check_move(board, col, turn, False)
-            can_pop = check_move(board, col, turn, True)
+            can_drop = check_move(board, turn, col, False)
+            can_pop = check_move(board, turn, col, True)
             if can_drop and can_pop:
                 return col, random.choice([True, False])
             elif can_drop:
@@ -633,8 +633,8 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
         last_legal_move = None
 
         for col in cols:
-            can_drop = check_move(board, col, turn, False)
-            can_pop = check_move(board, col, turn, True)
+            can_drop = check_move(board, turn, col, False)
+            can_pop = check_move(board, turn, col, True)
 
             if can_drop:
                 # NOTE: This naive 'AI' will prefer making drops over pops.
@@ -678,8 +678,8 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
         best_score_so_far = -math.inf
 
         for col in cols:
-            can_drop = check_move(board, col, turn, False)
-            can_pop = check_move(board, col, turn, True)
+            can_drop = check_move(board, turn, col, False)
+            can_pop = check_move(board, turn, col, True)
 
             if can_drop:
                 # check that a drop move won't result in immediate win for opponent.

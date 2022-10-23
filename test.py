@@ -40,37 +40,37 @@ def test():
     board = [1,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     board_result = [1,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     apply_move(board, 1, 0, False)
-    if board == board_result: print("test apply_move 1 - OK !")
+    if board == board_result: print("test apply_move 1 - OK ! Ensure apply_move has no side-effects")
     else: print("test apply_move 1 - Problem in the apply_move function output !")
     
     board = [0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     board_result = [1,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     board_tmp = apply_move(board, 1, 0, False)
-    if board_tmp == board_result: print("test apply_move 2 - OK !")
+    if board_tmp == board_result: print("test apply_move 2 - OK ! Test drop player 1 at col 0")
     else: print("test apply_move 2 - Problem in the apply_move function output !")
     
     board = [0,1,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     board_result = [0,1,0,0,0,0,0,  0,2,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     board_tmp = apply_move(board, 2, 1, False)
-    if board_tmp == board_result: print("test apply_move 3 - OK !")
+    if board_tmp == board_result: print("test apply_move 3 - OK ! Test drop player 2 on top of another piece")
     else: print("test apply_move 3 - Problem in the apply_move function output !")
     
     board = [1,1,0,0,0,0,0,  2,2,0,0,0,0,0,  2,0,0,0,0,0,0,  1,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     board_result = [2,1,0,0,0,0,0,  2,2,0,0,0,0,0,  1,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     board_tmp = apply_move(board, 1, 0, True)
-    if board_tmp == board_result: print("test apply_move 4 - OK !")
+    if board_tmp == board_result: print("test apply_move 4 - OK ! Test pop player 1 at col 0")
     else: print("test apply_move 4 - Problem in the apply_move function output !")
     
     board = [0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     board_result = [1,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     board_tmp = apply_move(board, 1, 0, False)
-    if board_tmp == board_result: print("test apply_move 5 - OK !")
+    if board_tmp == board_result: print("test apply_move 5 - OK ! Test drop player 1 (8 rows)")
     else: print("test apply_move 5 - Problem in the apply_move function output !")
     
     board = [1,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     board_result = [1,0,0,0,0,0,0,  2,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     board_tmp = apply_move(board, 2, 0, False)
-    if board_tmp == board_result: print("test apply_move 6 - OK !")
+    if board_tmp == board_result: print("test apply_move 6 - OK ! Test drop player 2 on top of another piece (4 rows)")
     else: print("test apply_move 6 - Problem in the apply_move function output !")
     
     
