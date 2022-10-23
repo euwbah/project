@@ -678,7 +678,7 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
         best_move_so_far = None
         best_score_so_far = -math.inf
 
-        for col in cols:
+        for col in range(COLS):
             can_drop = check_move(board, turn, col, False)
             can_pop = check_move(board, turn, col, True)
 
