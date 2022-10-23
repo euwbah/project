@@ -783,7 +783,7 @@ def test_computer_vs_computer(num_rows: int, comp1_level: int, comp2_level: int)
             break
         
         move_col, move_pop = computer_move(board, turn, comp1_level if turn == 1 else comp2_level)
-        apply_move(board, move_col, move_pop, turn)
+        board = apply_move(board, move_col, move_pop, turn)
         
         display_board(board)
         
