@@ -4,6 +4,7 @@ import random
 import math
 from shutil import copyfile
 import shutil
+from time import time
 from typing import List, Optional, Tuple
 
 '''
@@ -23,6 +24,9 @@ NOUGHTS = 1 # (Yellow)
 CROSSES = 2 # (Red)
 
 COLS = 7 # There's always 7 columns according to implementation notes.
+
+MINMAX_DEPTH = 4 # Recommended by assignment spec.
+
 
 def next_player(who_played: int) -> int:
     '''
@@ -68,14 +72,10 @@ def check_move(board: List[int], turn: int, col: int, pop: bool) -> bool:
     assert 0 <= col < COLS, 'Invalid column'
 
     num_rows = len(board)//7
-
-    if board[col] != 0 and pop == False:
-        return False
-        
-    if board[(num_rows - 1) * COLS + col] == turn and pop == True:
-        return False
     
-    return True
+    # A move is valid if it is Drop (not pop) and the column is not full,
+    # or if it is Pop and the bottom piece belongs to the current player.
+    return (not pop and board[(num_rows - 1) * COLS + col]) or (board[col] == turn)
 
 
 def check_stalemate(board: List[int], turn: int) -> bool:
@@ -446,6 +446,111 @@ def eval_cps(board: List[int]) -> float:
     return tally
 
 
+def decide_minimax_move(board: List[int], turn: int) -> Tuple[int, Optional[bool]]:
+    '''
+    Finds the best move for the current player using the minimax algorithm.
+
+    ### Arguments
+
+    - `board`: The current state of the board
+    - `turn`: Which player to find the best move for.
+
+    ### Returns
+
+    The best move for the current player, in the form `(column: int, pop: bool)`.
+    Returns `None` if stalemate and no legal moves found.
+    '''
+
+    def recurse_minimax(board: List[int], turn: int, depth: int) -> Tuple[float, Tuple[int, Optional[bool]]]:
+        '''
+        Recursively iterates through all legal moves and returns the best move and its CPS score.
+        
+        Always optimizes for the the best move of the player denoted by `turn`.
+        
+        `turn` alternates between each move.
+        
+        An example of the alg with depth = 2 (i.e. 2 half-turns):
+
+        Say recurse is called with `turn` = NOUGHTS, depth = 2, then the first move will be made by NOUGHTS.
+        A random move by NOUGHTS will be trialed and now recurse is called again as CROSSES' turn, depth 1.
+        A random move by CROSSES will be trialed and now recurse is called again as NOUGHTS' turn, depth 0.
+        
+        However, at depth 0, NOUGHTS doesn't get to make a random move, instead the CPS score is returned
+        as the base case of the recursion. This score represents the state of the board after NOUGHTS has
+        made one move and CROSSES has made one move.
+        
+        Back up at depth 1, it was CROSSES's turn, and the function tries to optimize the best move for CROSSES.
+        
+        It tries all possible moves such CROSSES will make the best move given the random initial move made by
+        NOUGHTS, and returns the CPS score after such a play has been made.
+        
+        Back up at depth 2, it was NOUGHTS's turn, and the function keeps trying other moves
+        for NOUGHTS such that the best play CROSSES will make after such a move will be maximally in 
+        favour for NOUGHTS and minimally in favour of CROSSES.
+
+        ### Arguments
+
+        - `board`: The current state of the board
+        - `turn`: Which player to find the best move for.
+        - `depth`: How many moves ahead to search (1 represents next move, terminate recursion)
+
+        ### Returns
+
+        The best move for the current player, in the form `(cps: float, move: (column: int, pop: bool))`
+        '''
+
+        assert depth >= 0, "Depth must be >= 0"
+
+        # If current board state has an immediate winning move this current turn
+        # return it.
+
+        winning_move = find_immediate_win(board, turn)
+
+        if winning_move is not None:
+            # If there are winning moves, return the first one
+            # 10000 is equivalent to 10 immediate win opportunities given a free half-turn move.
+            # (symbolizes a definite win in this state)
+            score = 10000 if turn == NOUGHTS else -10000
+            return score, winning_move
+
+        # Iterate legal moves and recurse each scenario
+
+        if depth == 0:
+            # No deeper recursion, return CPS score
+            return eval_cps(board), None
+
+        best_move = None
+        
+        # best score in favour of Nought is maximal
+        # best score in favour of Cross is minimal
+        # initialize best_score to be the opposite end of optimal score depending on 
+        # which player to optimize for.
+        best_score = -100000 if turn == NOUGHTS else 100000
+
+        for col in range(COLS):
+            for pop in [True, False]:
+                if not check_move(board, col, turn, pop):
+                    continue
+
+                board_copy = apply_move(board, turn, col, pop)
+                score, _ = recurse_minimax(board_copy, next_player(turn), depth - 1)
+
+                if turn == NOUGHTS:
+                    if score > best_score:
+                        best_score = score
+                        best_move = (col, pop)
+                elif turn == CROSSES:
+                    if score < best_score:
+                        best_score = score
+                        best_move = (col, pop)
+
+        return best_score, best_move
+
+    _, best_move = recurse_minimax(board, turn, 4)
+    
+    return best_move
+
+
 def check_board_empty(board: List[int]) -> bool:
     '''
     Checks if the board is empty (no pieces on the board)
@@ -602,8 +707,8 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
         if check_board_empty(board):
             # If board is empty, always play drop center column, that is always the best opening move.
             return (COLS - 1) // 2, False
-
-        pass
+        
+                
     return (0,False)
 
 
@@ -686,5 +791,13 @@ def menu():
 if __name__ == "__main__":
     menu()
     print(os.getcwd())
-    board = [1,2,0,0,0,0,0,  1,2,0,0,0,0,0,  1,2,0,0,0,0,0,  1,2,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
+    board = [1,2,0,0,0,0,0,  1,2,0,0,0,0,0,  1,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     display_board(board)
+    print(eval_cps(board))
+    
+    now = time()
+    
+    for x in range(14 ** 4):
+        eval_cps(board)
+    
+    print(time() - now)
