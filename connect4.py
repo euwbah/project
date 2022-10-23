@@ -184,7 +184,8 @@ def check_victory(board: List[int], who_played: int) -> int:
         for col in range(COLS):
             piece = board[row * 7 + col]
             if piece != streak_piece: # streak is broken
-                if streak_piece != 0 and col - index_of_streak_start == 4:
+                if streak_piece != 0 and col - index_of_streak_start >= 4:
+                    # 4 or more consecutive pieces = win
                     if streak_piece == NOUGHTS:
                         noughts_wins = True
                     elif streak_piece == CROSSES: # redundant elif, but here for future-proofing multiplayers if needed.
@@ -193,7 +194,7 @@ def check_victory(board: List[int], who_played: int) -> int:
                 streak_piece = piece
         
         # Check if row ended with a winning streak:
-        if streak_piece != 0 and COLS - index_of_streak_start == 4:
+        if streak_piece != 0 and COLS - index_of_streak_start >= 4:
             if streak_piece == NOUGHTS:
                 noughts_wins = True
             elif streak_piece == CROSSES:
@@ -212,7 +213,7 @@ def check_victory(board: List[int], who_played: int) -> int:
             for row in range(num_rows):
                 piece = board[row * 7 + col]
                 if piece != streak_piece:
-                    if streak_piece != 0 and row - index_of_streak_start == 4:
+                    if streak_piece != 0 and row - index_of_streak_start >= 4:
                         if streak_piece == NOUGHTS:
                             noughts_wins = True
                         elif streak_piece == CROSSES:
@@ -221,7 +222,7 @@ def check_victory(board: List[int], who_played: int) -> int:
                     streak_piece = piece
 
             # Check if end of column has a winning streak:
-            if streak_piece != 0 and num_rows - index_of_streak_start == 4:
+            if streak_piece != 0 and num_rows - index_of_streak_start >= 4:
                 if streak_piece == NOUGHTS:
                     noughts_wins = True
                 elif streak_piece == CROSSES:
@@ -243,7 +244,7 @@ def check_victory(board: List[int], who_played: int) -> int:
             while row + diagonal_idx < num_rows and col - diagonal_idx >= 0:
                 piece = board[(row + diagonal_idx) * 7 + col - diagonal_idx]
                 if piece != streak_piece:
-                    if streak_piece != 0 and diagonal_idx - index_of_streak_start == 4:
+                    if streak_piece != 0 and diagonal_idx - index_of_streak_start >= 4:
                         if streak_piece == NOUGHTS:
                             noughts_wins = True
                         elif streak_piece == CROSSES:
@@ -253,7 +254,7 @@ def check_victory(board: List[int], who_played: int) -> int:
                 diagonal_idx += 1
 
             # Check if the last few pieces are a winning streak:
-            if streak_piece != 0 and diagonal_idx - index_of_streak_start == 4:
+            if streak_piece != 0 and diagonal_idx - index_of_streak_start >= 4:
                 if streak_piece == NOUGHTS:
                     noughts_wins = True
                 elif streak_piece == CROSSES:
@@ -275,7 +276,7 @@ def check_victory(board: List[int], who_played: int) -> int:
             while row + diagonal_idx < num_rows and col + diagonal_idx < COLS:
                 piece = board[(row + diagonal_idx) * 7 + col + diagonal_idx]
                 if piece != streak_piece:
-                    if streak_piece != 0 and diagonal_idx - index_of_streak_start == 4:
+                    if streak_piece != 0 and diagonal_idx - index_of_streak_start >= 4:
                         if streak_piece == NOUGHTS:
                             noughts_wins = True
                         elif streak_piece == CROSSES:
@@ -285,7 +286,7 @@ def check_victory(board: List[int], who_played: int) -> int:
                 diagonal_idx += 1
 
             # Check if the last few pieces are a winning streak:
-            if streak_piece != 0 and diagonal_idx - index_of_streak_start == 4:
+            if streak_piece != 0 and diagonal_idx - index_of_streak_start >= 4:
                 if streak_piece == NOUGHTS:
                     noughts_wins = True
                 elif streak_piece == CROSSES:
@@ -676,7 +677,11 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
             return (COLS - 1) // 2, False
 
         best_move_so_far = None
-        best_score_so_far = -math.inf
+        best_score_so_far = -999999
+        
+        # if CROSSES' turn, optimize for lowest CPS possible
+        # invert CPS score later ensure that maximum best score ==> minimum CPS ==> best move for CROSSES.
+        turn_mult = 1 if turn == NOUGHTS else -1
 
         for col in range(COLS):
             can_drop = check_move(board, turn, col, False)
@@ -685,13 +690,13 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
             if can_drop:
                 # check that a drop move won't result in immediate win for opponent.
                 board_copy = apply_move(board, turn, col, False)
-                if (cps := eval_cps(board_copy)) > best_score_so_far:
+                if (cps := turn_mult * eval_cps(board_copy)) > best_score_so_far:
                     best_score_so_far = cps
                     best_move_so_far = (col, False)
             
             if can_pop:
                 board_copy = apply_move(board, turn, col, True)
-                if (cps := eval_cps(board_copy)) > best_score_so_far:
+                if (cps := turn_mult * eval_cps(board_copy)) > best_score_so_far:
                     best_score_so_far = cps
                     best_move_so_far = (col, True)
         
@@ -771,7 +776,12 @@ def test_computer_vs_computer(num_rows: int, comp1_level: int, comp2_level: int)
     board = [0]*num_rows*7 # init new board
     
     print(f"\nStarting Computer (lvl {comp1_level}) vs Computer (lvl {comp2_level})\n")
+    
+    sleep(0.5)
+    
     display_board(board)
+    
+    sleep(1)
     
     turn = 1 # player 1 starts
     
@@ -844,4 +854,11 @@ def menu():
     pass
 
 if __name__ == "__main__":
-    test_computer_vs_computer(6, 3, 3)
+    board = [
+        0, 0, 1, 2, 2, 0, 0,
+        0, 0, 1, 1, 1, 1, 1,
+        0, 0, 2, 1, 2, 2, 1,
+        0, 0, 2, 1, 1, 2, 2
+    ]
+    print(check_victory(board, 1))
+    # test_computer_vs_computer(6, 3, 3)
