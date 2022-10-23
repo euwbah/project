@@ -621,7 +621,7 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
 
         # Brute force all legal moves (up to 14 of them only) to see if any of them immediately wins:
 
-        if winning_move := find_immediate_win(board, turn) is not None:
+        if (winning_move := find_immediate_win(board, turn)) is not None:
             return winning_move
         
         # Otherwise, make any random move that doesn't allow opponent to immediately win.
@@ -684,13 +684,13 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
             if can_drop:
                 # check that a drop move won't result in immediate win for opponent.
                 board_copy = apply_move(board, turn, col, False)
-                if cps := eval_cps(board_copy) > best_score_so_far:
+                if (cps := eval_cps(board_copy)) > best_score_so_far:
                     best_score_so_far = cps
                     best_move_so_far = (col, False)
             
             if can_pop:
                 board_copy = apply_move(board, turn, col, True)
-                if cps := eval_cps(board_copy) > best_score_so_far:
+                if (cps := eval_cps(board_copy)) > best_score_so_far:
                     best_score_so_far = cps
                     best_move_so_far = (col, True)
         

@@ -152,15 +152,26 @@ def test():
     board_result = [1,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     computer_move(board, 1, 1)
     computer_move(board, 1, 2)
-    if board == board_result: print("test computer_move 1 - OK !")
+    if board == board_result: print("test computer_move 1 - OK ! Ensure computer_move has no side effects")
     else: print("test computer_move 1 - Problem in the computer_move function output !")
     
+    # 0 0 0 0 0 0 0
+    # 0 0 0 0 0 0 0
+    # 2 0 0 0 0 0 0
+    # 2 0 0 0 0 0 0
+    # 2 0 0 0 0 0 0
+    # 1 1 1 0 0 0 0
     board = [1,1,1,0,0,0,0,  2,0,0,0,0,0,0,  2,0,0,0,0,0,0,  2,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
-    if computer_move(board, 1, 2) in [(3, False)]: print("test computer_move 2 - OK !")
+    if computer_move(board, 1, 2) in [(3, False)]: print("test computer_move 2 - OK ! immediate win for P1")
     else: print("test computer_move 2 - Problem in the computer_move function output !")
     
+    # 0 0 0 0 0 0 0
+    # 2 0 0 0 0 0 0
+    # 2 0 0 0 0 0 0
+    # 2 0 0 0 0 0 0
+    # 1 1 1 0 0 0 0
     board = [1,1,1,0,0,0,0,  2,0,0,0,0,0,0,  2,0,0,0,0,0,0,  2,0,0,0,0,0,0,  0,0,0,0,0,0,0]
-    if computer_move(board, 1, 2) in [(3, False)]: print("test computer_move 3 - OK !")
+    if computer_move(board, 1, 2) in [(3, False)]: print("test computer_move 3 - OK ! immediate win for P1 (5 rows)")
     else: print("test computer_move 3 - Problem in the computer_move function output !")
   
    
