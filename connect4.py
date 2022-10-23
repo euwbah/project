@@ -365,7 +365,7 @@ def find_immediate_win_multiple(board: List[int], turn: int) -> List[Tuple[int, 
     return winning_moves
 
 
-def eval_cps(board: List[int]) -> float:
+def eval_cps(board: List[int], depth: int = 3) -> float:
     '''
     Evaluates the CPS score metric (see README.md)
     
@@ -377,6 +377,17 @@ def eval_cps(board: List[int]) -> float:
     ### Parameters
 
     - `board`: The current state of the board
+    - `depth`: How many free-moves (half-turns without opponent being able to move)
+               to look ahead. (default: 3, but use 1 or 2 when using this scoring system with minmax)
+               
+               NOTE: increasing depth by 1 will increase the expected variation of score by 10 fold.
+               Do not compare scores evaluated using differing depths!
+    
+    ### Returns
+    
+    A float score that is greater (+ve) if NOUGHTS have more winning opportunities,
+    and smaller (-ve) if CROSSES have more winning opportunities.
+    
     '''
 
     '''
@@ -439,116 +450,149 @@ def eval_cps(board: List[int]) -> float:
 
         return cps
 
-    tally += recurse_free_moves(board, 3, NOUGHTS)
-    tally -= recurse_free_moves(board, 3, CROSSES)
+    tally += recurse_free_moves(board, depth, NOUGHTS)
+    tally -= recurse_free_moves(board, depth, CROSSES)
 
     return tally
 
-
-def decide_minimax_move(board: List[int], turn: int, depth: int) -> Tuple[int, Optional[bool]]:
+def find_best_move(board: List[int], player: int, starting_depth: int) -> Tuple[float, float, float, Optional[Tuple[int, bool]]]:
     '''
-    Finds the best move for the current player using the minimax algorithm.
-
+    Finds the best move for computer using minmax with alpha-beta pruning.
+    
     ### Parameters
 
     - `board`: The current state of the board
     - `turn`: Which player to find the best move for.
-    - `depth`: How many half-turns ahead to look.
+    - `depth_remaining`: How many half-turns deep to search (depth = 1 is the base case of the recursion)
 
     ### Returns
 
-    The best move for the current player, in the form `(column: int, pop: bool)`.
-    Returns `None` if stalemate and no legal moves found.
+    `(score: float, alpha: float, beta: float, move: (column: int, pop: bool))`
+    
+    - `score`: the best score for the current player that can be attained from current board situation
+    - `alpha`: the best score in favour of NOUGHTS that NOUGHTS can guarantee/force
+    - `beta`: the best score in favour of CROSSES that CROSSES can guarantee/force
+    - `move`: The best move for the current player this turn.
+              `None` if stalemate or if current player will definitely lose.
     '''
-
-    def recurse_minimax(board: List[int], turn: int, depth: int) -> Tuple[float, Tuple[int, Optional[bool]]]:
+    
+    assert starting_depth > 0, "Starting depth must be greater than 0"
+    
+    def alphabeta_minmax(
+            board: List[int], 
+            turn: int, 
+            depth_remaining: int, 
+            alpha: float = -999999, 
+            beta: float = +999999
+        ) -> Tuple[float, float, float, Optional[Tuple[int, bool]]]:
         '''
-        Recursively iterates through all legal moves and returns the best move and its CPS score.
-        
-        Always optimizes for the the best move of the player denoted by `turn`.
-        
-        `turn` alternates between each move.
-        
-        An example of the alg with depth = 2 (i.e. 2 half-turns):
-
-        Say recurse is called with `turn` = NOUGHTS, depth = 2, then the first move will be made by NOUGHTS.
-        A random move by NOUGHTS will be trialed and now recurse is called again as CROSSES' turn, depth 1.
-        A random move by CROSSES will be trialed and now recurse is called again as NOUGHTS' turn, depth 0.
-        
-        However, at depth 0, NOUGHTS doesn't get to make a random move, instead the CPS score is returned
-        as the base case of the recursion. This score represents the state of the board after NOUGHTS has
-        made one move and CROSSES has made one move.
-        
-        Back up at depth 1, it was CROSSES's turn, and the function tries to optimize the best move for CROSSES.
-        
-        It tries all possible moves such CROSSES will make the best move given the random initial move made by
-        NOUGHTS, and returns the CPS score after such a play has been made.
-        
-        Back up at depth 2, it was NOUGHTS's turn, and the function keeps trying other moves
-        for NOUGHTS such that the best play CROSSES will make after such a move will be maximally in 
-        favour for NOUGHTS and minimally in favour of CROSSES.
+        Minmax algorithm with alpha-beta pruning. (Inspired by https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning)
 
         ### Parameters
 
         - `board`: The current state of the board
-        - `turn`: Which player to find the best move for.
-        - `depth`: How many moves ahead to search (1 represents next move, terminate recursion)
+        - `turn`: Which player to currently maximize the best move for.
+        - `depth_remaining`: How many half-turns left to search (depth = 1 is the base case of the recursion)
+        - `alpha`: The best score that NOUGHTS (maximizing player) can guarantee so far
+        - `beta`: The best score that CROSSES (minimizing player) can guarantee so far
 
         ### Returns
 
-        The best move for the current player, in the form `(cps: float, move: (column: int, pop: bool))`
+        `(score: float, alpha: float, beta: float, move: (column: int, pop: bool))`
+        
+        - `score`: the best score for the current player that can be attained from current board situation
+        - `alpha`: the best score that NOUGHTS can guarantee/force
+        - `beta`: the best score that CROSSES can guarantee/force
+        - `move`: The best move made by the current player this turn. `None` if stalemate and no legal moves found.
+        
+        NOTE: the returned alpha and beta aren't used recursively, they are only returned for the sake of debugging/statistics.
         '''
 
-        assert depth >= 0, "Depth must be >= 0"
+        # commented out to increase speed
+        # assert depth_remaining >= 0, "Depth must be >= 0"
 
         # If current board state has an immediate winning move this current turn
         # return it.
 
         winning_move = find_immediate_win(board, turn)
-
+        
+        # Check terminal nodes (win cases)
         if winning_move is not None:
             # If there are winning moves, return the first one
-            # 10000 is equivalent to 10 immediate win opportunities given a free half-turn move.
             # (symbolizes a definite win in this state)
-            score = 10000 if turn == NOUGHTS else -10000
-            return score, winning_move
+            score = 999999 if turn == NOUGHTS else -999999
+            return score, (+999999 if turn == NOUGHTS else alpha), (-999999 if turn == CROSSES else beta), winning_move
 
         # Iterate legal moves and recurse each scenario
 
-        if depth == 0:
+        if depth_remaining == 0:
             # No deeper recursion, return CPS score
-            return eval_cps(board), None
+            # Evaluate cps with lesser depth to speed up computation (since we're minmaxing recursively anyways)
+            return eval_cps(board, 2), alpha, beta, None
 
         best_move = None # if no legal moves, will return stalemate.
         
+        # stores the best score obtainable in favour of the current player.
         # best score in favour of Nought is maximal
         # best score in favour of Cross is minimal
         # initialize best_score to be the opposite end of optimal score depending on 
         # which player to optimize for.
-        best_score = -100000 if turn == NOUGHTS else 100000
-
-        for col in range(COLS):
-            for pop in [True, False]:
+        best_score = -999999 if turn == NOUGHTS else +999999
+        
+        for pop in [False, True]:
+            cols = list(range(COLS))
+            # shuffle cols so that AI doesn't prefer making moves on one side of the board over the other
+            random.shuffle(cols)
+            for col in cols:
                 if not check_move(board, turn, col, pop):
                     continue
 
                 board_copy = apply_move(board, turn, col, pop)
-                score, _ = recurse_minimax(board_copy, next_player(turn), depth - 1)
+                
+                # recursion step
+                score, _, _, _ = alphabeta_minmax(board_copy, next_player(turn), depth_remaining - 1, alpha, beta)
 
                 if turn == NOUGHTS:
+                    # maximizing player
+                    
+                    # update best score
                     if score > best_score:
                         best_score = score
                         best_move = (col, pop)
+                    
+                    if best_score >= beta:
+                        # beta represents the 'best' (i.e. minimal) score that CROSSES can guarantee at this point in time
+                        
+                        # if the best score for NOUGHTS in this board state is better than the 
+                        # best scenario CROSSES can force upon NOUGHTS,
+                        # this position in the game would never be reached, since CROSSES would guarantee a better
+                        # score by choosing a different move during their turn!
+                        
+                        # In other words, alpha must always be less than beta for a position to be plausible.
+                        
+                        # Thus, there is no need find any better moves for NOUGHTS, since they would
+                        # never be attainable. We can terminate this branch and return any
+                        # random 'best move' and 'best score', since they will never be used.
+                        return best_score, alpha, beta, (col, pop)
+                    
+                    # if this board state is deemed plausible, update alpha
+                    # alpha represents the 'best' (i.e. maximal) score that NOUGHTS can guarantee at this point in time
+                    alpha = max(alpha, best_score)
+                    
                 elif turn == CROSSES:
+                    # minimizing player
                     if score < best_score:
                         best_score = score
                         best_move = (col, pop)
+                    
+                    if best_score <= alpha:
+                        return best_score, alpha, beta, (col, pop)
+                    
+                    beta = min(beta, best_score)
 
-        return best_score, best_move
-
-    _, best_move = recurse_minimax(board, turn, depth)
+        return best_score, alpha, beta, best_move
     
-    return best_move
+    return alphabeta_minmax(board, player, starting_depth)
 
 
 def check_board_empty(board: List[int]) -> bool:
@@ -585,7 +629,7 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
         - `RuntimeError` if the computer cannot find a legal move to make (unhandled stalemate)
     '''
 
-    assert 1 <= level <= 4, "Invalid computer level"
+    assert 1 <= level, "Invalid computer level"
     assert 1 <= turn <= 2, "Unsupported player number"
 
 
@@ -707,22 +751,21 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
         raise RuntimeError("Unhandled stalemate. Computer has no moves.")
     elif level >= 4:
         # (Optional) Use min-max. Use CPS metric as scoring system for min-max algorithm.
-        # min-max depth = level - 2
-        # level 4 = depth 2
-        # level 5 = depth 3
-        # level 6 = depth 4
+        # min-max depth = level - 1
         # etc...
         
         if check_board_empty(board):
             # If board is empty, always play drop center column, that is always the best opening move.
             return (COLS - 1) // 2, False
         
-        best_move = decide_minimax_move(board, turn, level - 2)
+        _, _, _, best_move = find_best_move(board, turn, level - 1)
         
         if best_move is not None:
             return best_move
-        
-        raise RuntimeError("Unhandled stalemate. Computer has no moves.")
+        else:
+            # there are no good moves to be made, computer is about to lose
+            # just make a random move.
+            return computer_move(board, turn, 1)
                 
     return (0,False)
 
@@ -763,7 +806,7 @@ def display_board(board: List[int]):
         print()
 
 
-def test_computer_vs_computer(num_rows: int, comp1_level: int, comp2_level: int):
+def test_computer_vs_computer(num_rows: int, comp1_level: int, comp2_level: int, eval_depth: int = 4):
     '''
     Function to test computer player against computer player
     
@@ -772,6 +815,7 @@ def test_computer_vs_computer(num_rows: int, comp1_level: int, comp2_level: int)
     - `num_rows`: number of rows in the board
     - `comp1_level`: level of the first computer player
     - `comp2_level`: level of the second computer player
+    - `eval_depth`: depth of min-max used to evaluate board state
     '''
     board = [0]*num_rows*7 # init new board
     
@@ -792,7 +836,9 @@ def test_computer_vs_computer(num_rows: int, comp1_level: int, comp2_level: int)
             print(f"Player {turn} has no moves and is stalemated. Draw!")
             break
         
-        move_col, move_pop = computer_move(board, turn, comp1_level if turn == 1 else comp2_level)
+        lvl = comp1_level if turn == 1 else comp2_level
+        
+        move_col, move_pop = computer_move(board, turn, lvl)
         board = apply_move(board, turn, move_col, move_pop)
         
         display_board(board)
@@ -800,13 +846,19 @@ def test_computer_vs_computer(num_rows: int, comp1_level: int, comp2_level: int)
         print()
         
         time_elapsed = time() - curr_time
-        print(f'P{turn} thought for {time_elapsed:.2f} seconds\n')
+        print(f'P{turn} (lvl {lvl}) thought for {time_elapsed:.2f} seconds\n')
         
         if check_victory(board, turn):
             print(f"Player {turn} wins!")
             break
         
         turn = next_player(turn)
+        
+        # use high-depth computer to evaluate current position
+        eval_score, alpha, beta, _ = find_best_move(board, turn, eval_depth)
+        print(f'Eval score: {eval_score}, alpha: {alpha}, beta: {beta}')
+        
+        time_elapsed = time() - curr_time
         
         if time_elapsed < 1.5:
             # Make each move take at least 1.5 seconds so the game doesn't go by too fast
@@ -854,11 +906,5 @@ def menu():
     pass
 
 if __name__ == "__main__":
-    board = [
-        0, 0, 1, 2, 2, 0, 0,
-        0, 0, 1, 1, 1, 1, 1,
-        0, 0, 2, 1, 2, 2, 1,
-        0, 0, 2, 1, 1, 2, 2
-    ]
-    print(check_victory(board, 1))
-    # test_computer_vs_computer(6, 3, 3)
+    
+    test_computer_vs_computer(6, 5, 4, 3)
