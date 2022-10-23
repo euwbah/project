@@ -32,7 +32,7 @@ def next_player(who_played: int) -> int:
     '''
     Returns the next player/opponent given the current player.
 
-    ### Arguments
+    ### Parameters
 
     - `who_played`: The current player
 
@@ -57,7 +57,7 @@ def check_move(board: List[int], turn: int, col: int, pop: bool) -> bool:
     - Popping a piece from a column of which the bottom piece belongs to the current player
       AND isn't empty.
 
-    ### Arguments
+    ### Parameters
         - `board`: the board state
         - `turn`: which player makes this move
         - `col`: the column to drop/pop the piece. This is zero-indexed (first col is 0).
@@ -87,7 +87,7 @@ def check_stalemate(board: List[int], turn: int) -> bool:
     player to pop or drop anything. However it's still a probable case, so it should
     be accounted for.
 
-    ### Arguments
+    ### Parameters
 
     - `board`: The current state of the board
     - `turn`: Which player to check for stalemate
@@ -111,7 +111,7 @@ def apply_move(board: List[int], turn: int, col: int, pop: bool) -> List[int]:
     This is an **immutable** function with NO SIDE EFFECTS, i.e. the list
     referred to by the `board` variable is not modified. if-else loop. 1) drop 2) pop
 
-    ### Arguments
+    ### Parameters
         - `board`: the board state
         - `turn`: which player makes this move
         - `col`: the column to drop/pop the piece. This is zero-indexed (first col is 0).
@@ -148,7 +148,7 @@ def check_victory(board: List[int], who_played: int) -> int:
     ||the player that made the move LOSES.                                              ||
     ||----------------------------------------------------------------------------------||
 
-    ### Arguments
+    ### Parameters
         - `board`: the board state
         - `who_played`: the player who just made a move
 
@@ -184,7 +184,7 @@ def check_victory(board: List[int], who_played: int) -> int:
         for col in range(COLS):
             piece = board[row * 7 + col]
             if piece != streak_piece: # streak is broken
-                if streak_piece != 0 and col - index_of_streak_start + 1 == 4:
+                if streak_piece != 0 and col - index_of_streak_start == 4:
                     if streak_piece == NOUGHTS:
                         noughts_wins = True
                     elif streak_piece == CROSSES: # redundant elif, but here for future-proofing multiplayers if needed.
@@ -193,7 +193,7 @@ def check_victory(board: List[int], who_played: int) -> int:
                 streak_piece = piece
         
         # Check if row ended with a winning streak:
-        if streak_piece != 0 and 6 + 1 - index_of_streak_start == 4:
+        if streak_piece != 0 and COLS - index_of_streak_start == 4:
             if streak_piece == NOUGHTS:
                 noughts_wins = True
             elif streak_piece == CROSSES:
@@ -212,7 +212,7 @@ def check_victory(board: List[int], who_played: int) -> int:
             for row in range(num_rows):
                 piece = board[row * 7 + col]
                 if piece != streak_piece:
-                    if streak_piece != 0 and row - index_of_streak_start + 1 == 4:
+                    if streak_piece != 0 and row - index_of_streak_start == 4:
                         if streak_piece == NOUGHTS:
                             noughts_wins = True
                         elif streak_piece == CROSSES:
@@ -221,7 +221,7 @@ def check_victory(board: List[int], who_played: int) -> int:
                     streak_piece = piece
 
             # Check if end of column has a winning streak:
-            if streak_piece != 0 and 5 + 1 - index_of_streak_start == 4:
+            if streak_piece != 0 and num_rows - index_of_streak_start == 4:
                 if streak_piece == NOUGHTS:
                     noughts_wins = True
                 elif streak_piece == CROSSES:
@@ -243,7 +243,7 @@ def check_victory(board: List[int], who_played: int) -> int:
             while row + diagonal_idx < num_rows and col - diagonal_idx >= 0:
                 piece = board[(row + diagonal_idx) * 7 + col - diagonal_idx]
                 if piece != streak_piece:
-                    if streak_piece != 0 and diagonal_idx - index_of_streak_start + 1 == 4:
+                    if streak_piece != 0 and diagonal_idx - index_of_streak_start == 4:
                         if streak_piece == NOUGHTS:
                             noughts_wins = True
                         elif streak_piece == CROSSES:
@@ -253,7 +253,7 @@ def check_victory(board: List[int], who_played: int) -> int:
                 diagonal_idx += 1
 
             # Check if the last few pieces are a winning streak:
-            if streak_piece != 0 and num_rows - row - index_of_streak_start == 4:
+            if streak_piece != 0 and diagonal_idx - index_of_streak_start == 4:
                 if streak_piece == NOUGHTS:
                     noughts_wins = True
                 elif streak_piece == CROSSES:
@@ -275,7 +275,7 @@ def check_victory(board: List[int], who_played: int) -> int:
             while row + diagonal_idx < num_rows and col + diagonal_idx < COLS:
                 piece = board[(row + diagonal_idx) * 7 + col + diagonal_idx]
                 if piece != streak_piece:
-                    if streak_piece != 0 and diagonal_idx - index_of_streak_start + 1 == 4:
+                    if streak_piece != 0 and diagonal_idx - index_of_streak_start == 4:
                         if streak_piece == NOUGHTS:
                             noughts_wins = True
                         elif streak_piece == CROSSES:
@@ -285,7 +285,7 @@ def check_victory(board: List[int], who_played: int) -> int:
                 diagonal_idx += 1
 
             # Check if the last few pieces are a winning streak:
-            if streak_piece != 0 and num_rows - row - index_of_streak_start == 4:
+            if streak_piece != 0 and diagonal_idx - index_of_streak_start == 4:
                 if streak_piece == NOUGHTS:
                     noughts_wins = True
                 elif streak_piece == CROSSES:
@@ -306,7 +306,7 @@ def find_immediate_win(board: List[int], turn: int) -> Optional[Tuple[int, bool]
     Finds a legal move that can be made by current player's `turn` that will
     immediately win the game for the current player.
 
-    ### Arguments
+    ### Parameters
 
     - `board`: The current state of the board
     - `turn`: Which player to find winning moves for.
@@ -336,7 +336,7 @@ def find_immediate_win_multiple(board: List[int], turn: int) -> List[Tuple[int, 
     Finds a list of all the legal moves that can be made by current player's `turn` that will
     immediately win the game for the current player.
 
-    ### Arguments
+    ### Parameters
 
     - `board`: The current state of the board
     - `turn`: Which player to find winning moves for.
@@ -373,7 +373,7 @@ def eval_cps(board: List[int]) -> float:
     (Noughts winning will contribute a positive score, crosses winning
     will contribute a negative score)
 
-    ### Arguments
+    ### Parameters
 
     - `board`: The current state of the board
     '''
@@ -404,7 +404,7 @@ def eval_cps(board: List[int]) -> float:
         Recursively iterates through all permutations of free moves and returns CPS score obtained by
         current iteration.
 
-        ### Arguments
+        ### Parameters
 
         - `board`: The current state of the board
         - `depth_remaining`: How many free moves are left to be made (1 represents last free move, terminate recursion)
@@ -448,7 +448,7 @@ def decide_minimax_move(board: List[int], turn: int) -> Tuple[int, Optional[bool
     '''
     Finds the best move for the current player using the minimax algorithm.
 
-    ### Arguments
+    ### Parameters
 
     - `board`: The current state of the board
     - `turn`: Which player to find the best move for.
@@ -486,7 +486,7 @@ def decide_minimax_move(board: List[int], turn: int) -> Tuple[int, Optional[bool
         for NOUGHTS such that the best play CROSSES will make after such a move will be maximally in 
         favour for NOUGHTS and minimally in favour of CROSSES.
 
-        ### Arguments
+        ### Parameters
 
         - `board`: The current state of the board
         - `turn`: Which player to find the best move for.
@@ -553,7 +553,7 @@ def check_board_empty(board: List[int]) -> bool:
     '''
     Checks if the board is empty (no pieces on the board)
 
-    ### Arguments
+    ### Parameters
 
     - `board`: The current state of the board
 
@@ -569,7 +569,7 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
     Evaluates the 'best' move to make for a given `turn` (i.e. player), depending on `level` of
     difficulty and `board` state.
 
-    ### Arguments
+    ### Parameters
         - `board`: the board state
         - `turn`: the player number of which the computer is supposed to make a move for.
         - `level`: the difficulty level of the computer.
