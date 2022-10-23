@@ -486,7 +486,8 @@ def find_best_move(board: List[int], player: int, starting_depth: int) -> Tuple[
             beta: float = +999999
         ) -> Tuple[float, float, float, Optional[Tuple[int, bool]]]:
         '''
-        Minmax algorithm with alpha-beta pruning. (Inspired by https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning)
+        Minmax algorithm with alpha-beta pruning. 
+        (Inspired by https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning)
 
         ### Parameters
 
@@ -520,8 +521,8 @@ def find_best_move(board: List[int], player: int, starting_depth: int) -> Tuple[
         if winning_move is not None:
             # If there are winning moves, return the first one
             # (symbolizes a definite win in this state)
-            score = 999999 if turn == NOUGHTS else -999999
-            return score, (+999999 if turn == NOUGHTS else alpha), (-999999 if turn == CROSSES else beta), winning_move
+            score = 100000 if turn == NOUGHTS else -100000
+            return score, (+100000 if turn == NOUGHTS else alpha), (-100000 if turn == CROSSES else beta), winning_move
 
         # Iterate legal moves and recurse each scenario
 
@@ -537,7 +538,7 @@ def find_best_move(board: List[int], player: int, starting_depth: int) -> Tuple[
         # best score in favour of Cross is minimal
         # initialize best_score to be the opposite end of optimal score depending on 
         # which player to optimize for.
-        best_score = -999999 if turn == NOUGHTS else +999999
+        best_score = alpha if turn == NOUGHTS else beta
         
         for pop in [False, True]:
             cols = list(range(COLS))
@@ -560,7 +561,7 @@ def find_best_move(board: List[int], player: int, starting_depth: int) -> Tuple[
                         best_score = score
                         best_move = (col, pop)
                     
-                    if best_score >= beta:
+                    if score >= beta:
                         # beta represents the 'best' (i.e. minimal) score that CROSSES can guarantee at this point in time
                         
                         # if the best score for NOUGHTS in this board state is better than the 
@@ -806,6 +807,15 @@ def display_board(board: List[int]):
         print()
 
 
+def display_move(col: int, pop: bool):
+    '''
+    Highlights which column a move was made in by printing
+    ^ or v under the column.
+    '''
+    print(" " * (6 + col * 3), end="")
+    print("v" if pop else "*")
+
+
 def test_computer_vs_computer(num_rows: int, comp1_level: int, comp2_level: int, eval_depth: int = 4):
     '''
     Function to test computer player against computer player
@@ -842,21 +852,23 @@ def test_computer_vs_computer(num_rows: int, comp1_level: int, comp2_level: int,
         board = apply_move(board, turn, move_col, move_pop)
         
         display_board(board)
+        display_move(move_col, move_pop)
         
         print()
         
         time_elapsed = time() - curr_time
-        print(f'P{turn} (lvl {lvl}) thought for {time_elapsed:.2f} seconds\n')
+        print(f'P{turn} (lvl {lvl}) thought for {time_elapsed:.2f} seconds')
+        print(board)
         
         if check_victory(board, turn):
             print(f"Player {turn} wins!")
             break
         
-        turn = next_player(turn)
-        
         # use high-depth computer to evaluate current position
         eval_score, alpha, beta, _ = find_best_move(board, turn, eval_depth)
-        print(f'Eval score: {eval_score}, alpha: {alpha}, beta: {beta}')
+        print(f'Eval score: {eval_score}, α: {alpha}, β: {beta}\n')
+        
+        turn = next_player(turn)
         
         time_elapsed = time() - curr_time
         
@@ -906,5 +918,19 @@ def menu():
     pass
 
 if __name__ == "__main__":
+    board_upsidedown = [
+        0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,
+        0,0,2,0,0,0,0,
+        0,0,1,1,0,0,1,
+        0,0,2,1,2,1,2,
+        1,0,2,1,1,2,1,
+    ]
+    board = []
+    for i in range(5, -1, -1):
+        board.extend(board_upsidedown[i*7:(i+1)*7])
+    best_move = find_best_move(board, 2, 5)
     
-    test_computer_vs_computer(6, 5, 4, 3)
+    tmp = [1, 0, 2, 1, 1, 2, 1, 0, 0, 2, 1, 2, 1, 2, 0, 0, 1, 1, 0, 1, 1, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    best_move = find_best_move(tmp, 2, 3)
+    test_computer_vs_computer(6, 5, 6, 3)
