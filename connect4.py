@@ -4,7 +4,7 @@ import random
 import math
 from shutil import copyfile
 import shutil
-from time import time
+from time import sleep, time
 from typing import List, Optional, Tuple
 
 '''
@@ -444,7 +444,7 @@ def eval_cps(board: List[int]) -> float:
     return tally
 
 
-def decide_minimax_move(board: List[int], turn: int) -> Tuple[int, Optional[bool]]:
+def decide_minimax_move(board: List[int], turn: int, depth: int) -> Tuple[int, Optional[bool]]:
     '''
     Finds the best move for the current player using the minimax algorithm.
 
@@ -452,6 +452,7 @@ def decide_minimax_move(board: List[int], turn: int) -> Tuple[int, Optional[bool
 
     - `board`: The current state of the board
     - `turn`: Which player to find the best move for.
+    - `depth`: How many half-turns ahead to look.
 
     ### Returns
 
@@ -517,7 +518,7 @@ def decide_minimax_move(board: List[int], turn: int) -> Tuple[int, Optional[bool
             # No deeper recursion, return CPS score
             return eval_cps(board), None
 
-        best_move = None
+        best_move = None # if no legal moves, will return stalemate.
         
         # best score in favour of Nought is maximal
         # best score in favour of Cross is minimal
@@ -544,7 +545,7 @@ def decide_minimax_move(board: List[int], turn: int) -> Tuple[int, Optional[bool
 
         return best_score, best_move
 
-    _, best_move = recurse_minimax(board, turn, 4)
+    _, best_move = recurse_minimax(board, turn, depth)
     
     return best_move
 
@@ -699,13 +700,24 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
 
         # If code reached here, it is an uncaught stalemate.
         raise RuntimeError("Unhandled stalemate. Computer has no moves.")
-    elif level == 4:
+    elif level >= 4:
         # (Optional) Use min-max. Use CPS metric as scoring system for min-max algorithm.
+        # min-max depth = level - 2
+        # level 4 = depth 2
+        # level 5 = depth 3
+        # level 6 = depth 4
+        # etc...
         
         if check_board_empty(board):
             # If board is empty, always play drop center column, that is always the best opening move.
             return (COLS - 1) // 2, False
         
+        best_move = decide_minimax_move(board, turn, level - 2)
+        
+        if best_move is not None:
+            return best_move
+        
+        raise RuntimeError("Unhandled stalemate. Computer has no moves.")
                 
     return (0,False)
 
@@ -744,6 +756,51 @@ def display_board(board: List[int]):
             file_index += 1
 
         print()
+
+
+def test_computer_vs_computer(num_rows: int, comp1_level: int, comp2_level: int):
+    '''
+    Function to test computer player against computer player
+    
+    ### Parameters:
+    
+    - `num_rows`: number of rows in the board
+    - `comp1_level`: level of the first computer player
+    - `comp2_level`: level of the second computer player
+    '''
+    board = [0]*num_rows*7 # init new board
+    
+    print(f"Starting Computer (lvl {comp1_level}) vs Computer (lvl {comp2_level})")
+    display_board(board)
+    
+    turn = 1 # player 1 starts
+    
+    while True:
+        curr_time = time()
+        
+        if check_stalemate(board, turn):
+            print(f"Player {turn} has no moves and is stalemated. Draw!")
+            break
+        
+        move_col, move_pop = computer_move(board, turn, comp1_level if turn == 1 else comp2_level)
+        apply_move(board, move_col, move_pop, turn)
+        
+        display_board(board)
+        
+        print()
+        
+        time_elapsed = time() - curr_time
+        print(f'P{turn} thought for {time_elapsed:.2f} seconds\n')
+        
+        if check_victory(board, turn):
+            print(f"Player {turn} wins!")
+            break
+        
+        turn = next_player(turn)
+        
+        if time_elapsed < 1.5:
+            # Make each move take at least 1.5 seconds so the game doesn't go by too fast
+            sleep(1.5 - time_elapsed)
 
 
 def menu():
@@ -787,15 +844,4 @@ def menu():
     pass
 
 if __name__ == "__main__":
-    menu()
-    print(os.getcwd())
-    board = [1,2,0,0,0,0,0,  1,2,0,0,0,0,0,  1,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
-    display_board(board)
-    print(eval_cps(board))
-    
-    now = time()
-    
-    for x in range(14 ** 4):
-        eval_cps(board)
-    
-    print(time() - now)
+    test_computer_vs_computer(6, 3, 3)

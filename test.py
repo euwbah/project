@@ -173,6 +173,6 @@ def test():
     board = [1,1,1,0,0,0,0,  2,0,0,0,0,0,0,  2,0,0,0,0,0,0,  2,0,0,0,0,0,0,  0,0,0,0,0,0,0]
     if computer_move(board, 1, 2) in [(3, False)]: print("test computer_move 3 - OK ! immediate win for P1 (5 rows)")
     else: print("test computer_move 3 - Problem in the computer_move function output !")
-  
-   
+    
+
 test()
