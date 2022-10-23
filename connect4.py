@@ -70,12 +70,12 @@ def check_move(board: List[int], turn: int, col: int, pop: bool) -> bool:
     # Checking whether column is valid is to be done in the menu game UI code, not here.
     # If user-input is out-of-bounds here, this is an unexpected error.
     assert 0 <= col < COLS, 'Invalid column'
-
-    num_rows = len(board)//7
     
-    # A move is valid if it is Drop (not pop) and the column is not full,
-    # or if it is Pop and the bottom piece belongs to the current player.
-    return (not pop and board[(num_rows - 1) * COLS + col]) or (board[col] == turn)
+    col_pieces = board[col::7] # represents pieces of given `col` from bottom to top.
+    
+    # A move is valid if it is Drop (not pop) and the column is not full (topmost piece in column 0),
+    return (not pop and col_pieces[-1] == 0) \
+        or (pop and col_pieces[0] == turn) # or if it is Pop and the bottom piece belongs to the current player.
 
 
 def check_stalemate(board: List[int], turn: int) -> bool:
@@ -120,22 +120,20 @@ def apply_move(board: List[int], turn: int, col: int, pop: bool) -> List[int]:
     ### Returns
         The new board state (list of ints)
     '''
-    board_copy = board.copy() #board_tmp = board.copy()
-    num_rows = len(board)//7
-    if pop == False:
-        if turn == 1:
-            while col+7 < num_rows*7 and board_copy[col] != 0:
-                col += 7
-            board_copy[col] = NOUGHTS # basically means the placing will have a circle. or maybe instead of 1 put x?
-        elif turn == 2:
-            while col+7 < num_rows*7 and board_copy[col] != 0:
-                col += 7
-            board_copy[col] = CROSSES #check if write nought or cross or numbers
     
-    if pop == True: 
-         while board_copy[col] != 0:
-            board_copy[col] = board_copy[col+7] #copy number
-            col += 7
+    # represents the updated board to return
+    board_copy = board.copy()
+    
+    if pop == False:
+        # zero-indexed row number of the first occurence of 0 in given `col`
+        row = next((i for i, x in enumerate(board[col::7]) if x == 0), None)
+        assert row is not None, 'Invalid move! Column is full.' # should never happen
+        board_copy[row * COLS + col] = turn
+    else: # pop == True
+        col_pieces = board[col::7] # represents pieces of given `col` from bottom to top.
+        # pop the bottom piece, shift all contents down one row
+        # replace topmost piece with 0.
+        board_copy[col::7] = col_pieces[1:] + [0]
         
     return board_copy
 

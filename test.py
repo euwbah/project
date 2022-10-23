@@ -6,31 +6,31 @@ def test():
     print()
     
     board = [0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
-    if check_move(board, 1, 1, False): print("test check_move 1 - OK !")
+    if check_move(board, 1, 1, False): print("test check_move 1 - OK ! Allow drop in open column")
     else: print("test check_move 1 - Problem in the check_move function output !")
     
     board = [0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
-    if not check_move(board, 1, 1, True): print("test check_move 2 - OK !")
+    if not check_move(board, 1, 1, True): print("test check_move 2 - OK ! Disallow pop with no piece at bottom.")
     else: print("test check_move 2 - Problem in the check_move function output !")
     
     board = [1,0,0,0,0,0,0,  2,0,0,0,0,0,0,  1,0,0,0,0,0,0,  2,0,0,0,0,0,0,  1,0,0,0,0,0,0,  2,0,0,0,0,0,0]
-    if not check_move(board, 1, 0, False): print("test check_move 3 - OK !")
+    if not check_move(board, 1, 0, False): print("test check_move 3 - OK ! Disallow drop in full column")
     else: print("test check_move 3 - Problem in the check_move function output !")
     
     board = [1,0,0,0,0,0,0,  2,0,0,0,0,0,0,  1,0,0,0,0,0,0,  2,0,0,0,0,0,0,  1,0,0,0,0,0,0,  2,0,0,0,0,0,0]
-    if check_move(board, 1, 0, True): print("test check_move 4 - OK !")
+    if check_move(board, 1, 0, True): print("test check_move 4 - OK ! Allow pop column with self-owned piece at bottom")
     else: print("test check_move 4 - Problem in the check_move function output !")
     
     board = [1,0,0,0,0,0,0,  2,0,0,0,0,0,0,  1,0,0,0,0,0,0,  2,0,0,0,0,0,0,  1,0,0,0,0,0,0,  2,0,0,0,0,0,0]
-    if not check_move(board, 2, 0, True): print("test check_move 5 - OK !")
+    if not check_move(board, 2, 0, True): print("test check_move 5 - OK ! Disallow pop column with opponent piece at bottom")
     else: print("test check_move 5 - Problem in the check_move function output !")
     
     board = [0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0,  0,0,0,0,0,0,0]
-    if not check_move(board, 1, 1, True): print("test check_move 6 - OK !")
+    if not check_move(board, 1, 1, True): print("test check_move 6 - OK ! Disallow pop with no piece at bottom (8 rows)")
     else: print("test check_move 6 - Problem in the check_move function output !")
     
     board = [1,0,0,0,0,0,0,  2,0,0,0,0,0,0,  1,0,0,0,0,0,0,  2,0,0,0,0,0,0]
-    if not check_move(board, 1, 0, False): print("test check_move 7 - OK !")
+    if not check_move(board, 1, 0, False): print("test check_move 7 - OK ! Disallow drop in full column (4 rows)")
     else: print("test check_move 7 - Problem in the check_move function output !")
    
     
