@@ -770,7 +770,7 @@ def test_computer_vs_computer(num_rows: int, comp1_level: int, comp2_level: int)
     '''
     board = [0]*num_rows*7 # init new board
     
-    print(f"Starting Computer (lvl {comp1_level}) vs Computer (lvl {comp2_level})")
+    print(f"\nStarting Computer (lvl {comp1_level}) vs Computer (lvl {comp2_level})\n")
     display_board(board)
     
     turn = 1 # player 1 starts
@@ -783,7 +783,7 @@ def test_computer_vs_computer(num_rows: int, comp1_level: int, comp2_level: int)
             break
         
         move_col, move_pop = computer_move(board, turn, comp1_level if turn == 1 else comp2_level)
-        board = apply_move(board, move_col, move_pop, turn)
+        board = apply_move(board, turn, move_col, move_pop)
         
         display_board(board)
         
