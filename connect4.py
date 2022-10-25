@@ -1,4 +1,4 @@
-from calendar import c
+fromfromfromfrom calendar import c
 import os
 import random
 import math
@@ -916,16 +916,41 @@ def menu():
     6. Repeat 1-5 until `check_victory()` returns a non-zero value, or `check_stalemate()` returns `True`.
     '''
     print("Welcome to Connect 4!")
-    choice = input("Please select PvP (1) or PvAI (2): ")
+    game_mode = input("Please select PvP (1) or PvAI (2): ")
 
-    while choice != "1" and choice != "2":
-        print("Invalid choice, please try again.")
-        choice = input("Please select PvP (1) or PvAI (2): ")
+    while game_mode != "1" and game_mode != "2":
+            print("Invalid choice, please try again.")
+            game_mode = input("Please select PvP (1) or PvAI (2): ")
     
-    if choice == "1":
-        display_board(board: List[int])) #we dk whether correct or not
+    while True:
+        try:
+            num_rows = int(input("Please select number of rows: "))
+        except ValueError:
+            print("Invalid choice, please try again.")
+
+        if num_rows<1:
+            print("Invalid choice, please try again.") #double check if this is ok
+        else:
+            break
+
+    board = [0]*num_rows*7 
+    
+    if game_mode == "1":
+        display_board(board) # we dk whether correct or not
+        drop_pop = input("Do you want to drop or pop (drop/pop)?: ").lower()
+
+        while drop_pop not in ["drop", "pop"]:
+            print("Invalid")
+            drop_pop = input("Do you want to drop or pop (drop/pop)?: ")
+
+        is_pop = drop_pop == "pop"
+        
         col = int(input("Select column to drop piece")) #Error?
-        check_move() #what do we add inside the bracket?
+        while col>COLS or col < 0:
+            print("Invalid Column")
+            col = int(input("Select column to drop piece"))
+            
+        check_move(board: List[int], turn: int, col: int, pop: bool) 
         
     pass
 
