@@ -684,6 +684,13 @@ def player_move(board: List[int], turn: int) -> Tuple[int, bool]:
         
         pop = pop_or_drop.lower() in ['pop', 'p']
         
+        if not check_move(board, turn, col, pop):
+            # if move is invalid, print specific error message and ask for another move
+            if pop:
+                print("You can only pop if you have your own piece at the bottom.")
+            else:
+                print("The column is full.")
+        
         return col, pop
 
 
