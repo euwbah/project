@@ -1,11 +1,10 @@
-fromfromfromfrom calendar import c
 import os
 import random
 import math
 from shutil import copyfile
 import shutil
 from time import sleep, time
-from typing import List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 '''
 NOTE 1: The `board` list that represents board state will have 7 * c elements,
@@ -611,6 +610,83 @@ def check_board_empty(board: List[int]) -> bool:
     return all(piece == 0 for piece in board)
 
 
+def get_validated_input(
+        prompt: str, 
+        type_converter: Callable[[str], Any], 
+        validator: Callable[[Any], bool], 
+        type_error_msg: str, 
+        validator_error_msg: Optional[str] = None) -> Any:
+    '''
+    A helper function to retrieve input data from user by prompt.
+    
+    This function repeatedly asks the user for input until a valid input is given,
+    checking for both type conversion errors and validation errors.
+    
+    ### Parameters
+    
+    - `prompt`: The prompt to display to the user.
+    - `type_converter`: A function that takes in a string and converts it to the desired type.
+    - `validator`: A function that takes in the the type-converted input and returns `True`
+                   if the input is valid, `False` otherwise.
+    - `type_error_msg`: The message to display to the user if a type conversion error occurs.
+    - `validator_error_msg`: (Optional) The message to display to the user if a validation error occurs.
+                             If not specified, reverts to `type_error_msg`.
+    
+    ### Returns
+    
+    Returns a validated value of the desired type retrieved from user input.
+    '''
+    
+    validator_error_msg = validator_error_msg or type_error_msg
+    
+    while True:
+        try:
+            user_input = input(prompt)
+            converted_input = type_converter(user_input)
+            
+            if validator(converted_input):
+                return converted_input
+            else:
+                print(validator_error_msg)
+        except ValueError:
+            print(type_error_msg)
+
+
+def player_move(board: List[int], turn: int) -> Tuple[int, bool]:
+    '''
+    Obtains move from player input.
+    
+    This function will repeatedly request for moves until a valid move is provided.
+
+    ### Parameters
+
+    - `board`: The current board state.
+    - `turn`: The current player
+
+    ### Returns
+
+    `(col: int, pop: bool)`: The move made by the player
+    '''
+    while True:
+        col = get_validated_input(
+            f"Player {turn}: enter column (1-{COLS}): ",
+            lambda x: int(x) - 1,
+            lambda x: 0 <= x < COLS,
+            f"Please enter a number from 1 to {COLS}",
+        )
+        
+        pop_or_drop = get_validated_input(
+            "Which move to make? (pop/drop/p/d)",
+            lambda x: x.lower(),
+            lambda x: x.lower() in ['pop', 'drop', 'p', 'd'],
+            "Please enter either 'pop'/'p' or 'drop'/'d'",
+        )
+        
+        pop = pop_or_drop.lower() in ['pop', 'p']
+        
+        return col, pop
+
+
 def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
     '''
     Evaluates the 'best' move to make for a given `turn` (i.e. player), depending on `level` of
@@ -783,7 +859,7 @@ def display_board(board: List[int]):
         path = os.path.join('epic_board', fname)
         os.remove(path)
     
-    print("col:  0  1  2  3  4  5  6")
+    print("col:  1  2  3  4  5  6  7")
     print()
     for row in range(num_rows - 1, -1, -1): # the 'first' row represents the bottom, so start from the 'last' row
         print("    ", end="")
@@ -915,59 +991,61 @@ def menu():
     5. Apply the obtained move using `apply_move()`
     6. Repeat 1-5 until `check_victory()` returns a non-zero value, or `check_stalemate()` returns `True`.
     '''
+    
     print("Welcome to Connect 4!")
-    game_mode = input("Please select PvP (1) or PvAI (2): ")
-
-    while game_mode != "1" and game_mode != "2":
-            print("Invalid choice, please try again.")
-            game_mode = input("Please select PvP (1) or PvAI (2): ")
     
+    # Main loop: contains game mode selection and game code.
     while True:
-        try:
-            num_rows = int(input("Please select number of rows: "))
-        except ValueError:
-            print("Invalid choice, please try again.")
-
-        if num_rows<1:
-            print("Invalid choice, please try again.") #double check if this is ok
-        else:
+        
+        game_mode: int = get_validated_input(
+            "Select game mode:\n1. PvP\n2. PvAI\n3. AIvAI\n4. Exit\n",
+            int,
+            lambda x: 1 <= x <= 4,
+            "Please enter a number from 1 to 4.",
+        )
+        
+        if game_mode == 4:
+            # Exit main loop.
+            print("Thanks for playing!")
             break
-
-    board = [0]*num_rows*7 
-    
-    if game_mode == "1":
-        display_board(board) # we dk whether correct or not
-        drop_pop = input("Do you want to drop or pop (drop/pop)?: ").lower()
-
-        while drop_pop not in ["drop", "pop"]:
-            print("Invalid")
-            drop_pop = input("Do you want to drop or pop (drop/pop)?: ")
-
-        is_pop = drop_pop == "pop"
         
-        col = int(input("Select column to drop piece")) #Error?
-        while col>COLS or col < 0:
-            print("Invalid Column")
-            col = int(input("Select column to drop piece"))
+        num_rows: int = get_validated_input(
+            "How many rows should the board have? (4-10) ",
+            int,
+            lambda x: 4 <= x <= 10,
+            "Please enter a number from 4 to 10"
+        )
+
+        # Create empty board.
+        board = [0]*num_rows*7
+        
+        # Player 1 starts first
+        turn = NOUGHTS
+        
+        if game_mode == 1:
+            # PvP
+            print("\nStarting Player vs Player\n")
             
-        check_move(board: List[int], turn: int, col: int, pop: bool) 
-        
-    pass
+            display_board(board)
+            
+            # Game loop
+            while True:
+                if check_stalemate(board, turn):
+                    print(f"Player {turn} has no moves and is stalemated. Draw!")
+                    break
+                
+                move_col, move_pop = player_move(board, turn)
+                board = apply_move(board, turn, move_col, move_pop)
+                
+                display_board(board)
+                display_move(move_col, move_pop)
+                
+                if check_victory(board, turn):
+                    print(f"Player {turn} wins!")
+                    break
+                
+                turn = next_player(turn)
+    
 
 if __name__ == "__main__":
-    board_upsidedown = [
-        0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,
-        0,0,2,0,0,0,0,
-        0,0,1,1,0,0,1,
-        0,0,2,1,2,1,2,
-        1,0,2,1,1,2,1,
-    ]
-    board = []
-    for i in range(5, -1, -1):
-        board.extend(board_upsidedown[i*7:(i+1)*7])
-    best_move = find_best_move(board, 2, 5)
-    
-    tmp = [1, 0, 2, 1, 1, 2, 1, 0, 0, 2, 1, 2, 1, 2, 0, 0, 1, 1, 0, 1, 1, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    best_move = find_best_move(tmp, 2, 3)
-    test_computer_vs_computer(6, 5, 6, 3)
+    menu()
