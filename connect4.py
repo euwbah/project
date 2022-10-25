@@ -915,6 +915,18 @@ def menu():
     5. Apply the obtained move using `apply_move()`
     6. Repeat 1-5 until `check_victory()` returns a non-zero value, or `check_stalemate()` returns `True`.
     '''
+    print("Welcome to Connect 4!")
+    choice = input("Please select PvP (1) or PvAI (2): ")
+
+    while choice != "1" and choice != "2":
+        print("Invalid choice, please try again.")
+        choice = input("Please select PvP (1) or PvAI (2): ")
+    
+    if choice == "1":
+        display_board(board: List[int])) #we dk whether correct or not
+        col = int(input("Select column to drop piece")) #Error?
+        check_move() #what do we add inside the bracket?
+        
     pass
 
 if __name__ == "__main__":
