@@ -47,6 +47,13 @@ def next_player(who_played: int) -> int:
     return NOUGHTS if who_played == CROSSES else CROSSES
 
 
+def display_player(turn: int) -> str:
+    '''
+    Convert player number to human-readable display
+    '''
+    return "O (Yellow)" if turn == NOUGHTS else "X (Red)"
+
+
 def check_move(board: List[int], turn: int, col: int, pop: bool) -> bool:
     '''
     Checks if a certain move is valid given a `board` state. Returns whether or not move is valid.
@@ -83,8 +90,11 @@ def check_stalemate(board: List[int], turn: int) -> bool:
 
     This will only return `True` in the very rare case that the board is full AND
     all the pieces at the bottom are the opponent's pieces, not allowing the current
-    player to pop or drop anything. However it's still a probable case, so it should
-    be accounted for.
+    player to pop or drop anything. 
+    
+    This is an improbable case and should never happen,
+    but its nice to leave this here for future-proofing in case a non-pop version of
+    connect 4 is implemented.
 
     ### Parameters
 
@@ -387,6 +397,11 @@ def eval_cps(board: List[int], depth: int = 3) -> float:
     A float score that is greater (+ve) if NOUGHTS have more winning opportunities,
     and smaller (-ve) if CROSSES have more winning opportunities.
     
+    A score of +1000 represents Nought is able to win in 1 free half-turn.
+    -100 means that Crosses can win in 2 free half-turns
+    900 means that Noughts can win in 1 free half-turn and Crosses can win in 2 free half-turns.
+    
+    10000 means Nought has already won.
     '''
 
     '''
@@ -404,8 +419,6 @@ def eval_cps(board: List[int], depth: int = 3) -> float:
     free move respectively (just as above).
 
     The final score tally represents who is winning.
-
-    Note: this is computationally heavy as there are 14^3 = 2744 permutations of 3 free moves.
     '''
 
     tally = 0
@@ -428,10 +441,19 @@ def eval_cps(board: List[int], depth: int = 3) -> float:
 
         assert depth_remaining > 0
         
+        # Represents how many CPS points each immediate win is worth
+        # at this current depth.
+        immediate_win_worth = 10 ** (3 - depth + depth_remaining)
+        
+        # If already won position at initial depth, return 10000
+        
+        if check_victory(board, turn) == turn and depth_remaining == depth:
+            return 10000
+        
         # Find all immediately winning moves for current player
 
         winning_moves = find_immediate_win_multiple(board, turn)
-        cps = 10 ** depth_remaining * len(winning_moves)
+        cps = immediate_win_worth * len(winning_moves)
 
         # Iterate legal moves and recurse each scenario
 
@@ -641,7 +663,7 @@ def get_validated_input(
     
     while True:
         try:
-            user_input = input(prompt)
+            user_input = input(prompt).strip() # automatically removes leading/trailing whitespace
             converted_input = type_converter(user_input)
             
             if validator(converted_input):
@@ -654,9 +676,13 @@ def get_validated_input(
 
 def player_move(board: List[int], turn: int) -> Tuple[int, bool]:
     '''
-    Obtains move from player input.
+    Obtains move from player input, after confirming validity of move, and double-confirming with the player.
     
     This function will repeatedly request for moves until a valid move is provided.
+    
+    If the player selected a column where only either pop or drop is possible,
+    this function will assume that the player intended to play the legal move and
+    will automatically select pop/drop for the user based on what the legal move was.
 
     ### Parameters
 
@@ -668,28 +694,45 @@ def player_move(board: List[int], turn: int) -> Tuple[int, bool]:
     `(col: int, pop: bool)`: The move made by the player
     '''
     while True:
+        # represents the 0-indexed column number of the move
         col = get_validated_input(
-            f"Player {turn}: enter column (1-{COLS}): ",
-            lambda x: int(x) - 1,
+            f"{display_player(turn)}: enter column (1-{COLS}): ",
+            lambda x: int(x) - 1, # convert from 1-based to 0-based
             lambda x: 0 <= x < COLS,
             f"Please enter a number from 1 to {COLS}",
         )
         
-        pop_or_drop = get_validated_input(
-            "Which move to make? (pop/drop/p/d)",
-            lambda x: x.lower(),
-            lambda x: x.lower() in ['pop', 'drop', 'p', 'd'],
-            "Please enter either 'pop'/'p' or 'drop'/'d'",
-        )
+        can_pop = check_move(board, turn, col, True)
+        can_drop = check_move(board, turn, col, False)
         
-        pop = pop_or_drop.lower() in ['pop', 'p']
+        if can_pop and can_drop:
+            # if both pop and drop are legal moves on this column, check with the user
+            # which move was intended.
+            pop_or_drop = get_validated_input(
+                "Which move to make? (pop/drop/p/d)",
+                lambda x: x.lower(),
+                lambda x: x in ['pop', 'drop', 'p', 'd'],
+                "Please enter either 'pop'/'p' or 'drop'/'d'",
+            )
         
-        if not check_move(board, turn, col, pop):
-            # if move is invalid, print specific error message and ask for another move
-            if pop:
-                print("You can only pop if you have your own piece at the bottom.")
-            else:
-                print("The column is full.")
+            pop = pop_or_drop.lower() in ['pop', 'p']
+            
+        elif can_pop:
+            pop = True
+        elif can_drop:
+            pop = False
+        else:
+            print("You aren't able to make any valid moves on that column. Please choose another column.\n")
+            continue
+        
+        # double-confirm move with player
+        
+        confirm_input = input(f"You are about to {'pop' if pop else 'drop'} your {display_player(turn)} piece on column {col + 1}.\n"
+              "Confirm move? (<enter> to accept, 'n' to cancel): ").strip().lower()
+        
+        if confirm_input == "n":
+            print("Move cancelled. Please choose another move.\n")
+            continue
         
         return col, pop
 
@@ -835,14 +878,14 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
         raise RuntimeError("Unhandled stalemate. Computer has no moves.")
     elif level >= 4:
         # (Optional) Use min-max. Use CPS metric as scoring system for min-max algorithm.
-        # min-max depth = level - 1
+        # min-max depth = level - 2
         # etc...
         
         if check_board_empty(board):
             # If board is empty, always play drop center column, that is always the best opening move.
             return (COLS - 1) // 2, False
         
-        _, _, _, best_move = find_best_move(board, turn, level - 1)
+        _, _, _, best_move = find_best_move(board, turn, level - 2)
         
         if best_move is not None:
             return best_move
@@ -863,8 +906,22 @@ def display_board(board: List[int]):
 
     # Clear the meme board
     for fname in os.listdir('epic_board'):
-        path = os.path.join('epic_board', fname)
-        os.remove(path)
+        try:
+            path = os.path.join('epic_board', fname)
+            os.remove(path)
+        except PermissionError:
+            # If the program doesn't have access rights to write to the directory
+            # don't implement the file explorer board feature.
+            pass
+    
+    
+    def copyfile_if_perms(src, dst):
+        try:
+            copyfile(src, dst)
+        except PermissionError:
+            # If the program doesn't have access rights to write to the directory
+            # don't implement the file explorer board feature.
+            pass
     
     print("col:  1  2  3  4  5  6  7")
     print()
@@ -877,13 +934,13 @@ def display_board(board: List[int]):
             piece = board[row * COLS + col]
             if piece == 0:
                 print("  .", end="")
-                copyfile("imgs/blank.png", f"epic_board/{file_index}.png")
+                copyfile_if_perms("imgs/blank.png", f"epic_board/{file_index}.png")
             elif piece == NOUGHTS:
                 print("  O", end="")
-                copyfile("imgs/yellow.png", f"epic_board/{file_index}.png")
+                copyfile_if_perms("imgs/yellow.png", f"epic_board/{file_index}.png")
             elif piece == CROSSES:
                 print("  X", end="")
-                copyfile("imgs/red.png", f"epic_board/{file_index}.png")
+                copyfile_if_perms("imgs/red.png", f"epic_board/{file_index}.png")
             
             file_index += 1
 
@@ -926,7 +983,7 @@ def test_computer_vs_computer(num_rows: int, comp1_level: int, comp2_level: int,
         curr_time = time()
         
         if check_stalemate(board, turn):
-            print(f"Player {turn} has no moves and is stalemated. Draw!")
+            print(f"Player {turn} (lvl {lvl}) has no moves and is stalemated. Draw!")
             break
         
         lvl = comp1_level if turn == 1 else comp2_level
@@ -941,10 +998,9 @@ def test_computer_vs_computer(num_rows: int, comp1_level: int, comp2_level: int,
         
         time_elapsed = time() - curr_time
         print(f'P{turn} (lvl {lvl}) thought for {time_elapsed:.2f} seconds')
-        print(board)
         
         if check_victory(board, turn):
-            print(f"Player {turn} wins!")
+            print(f"Player {turn} (lvl {lvl}) wins!")
             break
         
         # use high-depth computer to evaluate current position
@@ -1000,6 +1056,9 @@ def menu():
     '''
     
     print("Welcome to Connect 4!")
+    print()
+    print("You can choose to view the current board by opening the 'epic_board' folder in your file explorer/finder")
+    print("Make sure you open the file explorer large enough so that each row has 7 columns.\n")
     
     # Main loop: contains game mode selection and game code.
     while True:
@@ -1017,28 +1076,29 @@ def menu():
             break
         
         num_rows: int = get_validated_input(
-            "How many rows should the board have? (4-10) ",
+            "How many rows should the board have? (1-10) ",
             int,
-            lambda x: 4 <= x <= 10,
-            "Please enter a number from 4 to 10"
+            lambda x: 1 <= x <= 10,
+            "Please enter a number from 1 to 10"
         )
 
         # Create empty board.
-        board = [0]*num_rows*7
+        board: List[int] = [0]*num_rows*7
         
         # Player 1 starts first
-        turn = NOUGHTS
+        turn: int = NOUGHTS
         
         if game_mode == 1:
             # PvP
             print("\nStarting Player vs Player\n")
             
+            # Show empty board first
             display_board(board)
             
             # Game loop
             while True:
                 if check_stalemate(board, turn):
-                    print(f"Player {turn} has no moves and is stalemated. Draw!")
+                    print(f"{display_player(turn)} has no moves and is stalemated. Draw!")
                     break
                 
                 move_col, move_pop = player_move(board, turn)
@@ -1048,10 +1108,126 @@ def menu():
                 display_move(move_col, move_pop)
                 
                 if check_victory(board, turn):
-                    print(f"Player {turn} wins!")
+                    print(f"{display_player(turn)} wins!")
                     break
                 
                 turn = next_player(turn)
+            
+        elif game_mode == 2:
+            # PvAI
+            print("\nStarting Player vs Computer\n")
+            
+            # Represents which turn number is made by the human player.
+            player_turn: int = get_validated_input(
+                "Do you want to go first or second? (1/2)",
+                int,
+                lambda x: x in [1, 2],
+                "Please enter either 1 or 2",
+            )
+            
+            # Computer difficulty level.
+            comp_lvl: int = get_validated_input(
+                "Select computer difficulty:\n"
+                "1. Very easy (random)\n"
+                "2. Easy (naive)\n"
+                "3. Intermediate (heuristic)\n"
+                "4. Advanced (αβ minmax depth 2)\n"
+                "5. Hard (αβ minmax depth 3)\n"
+                "6. Very hard (αβ minmax depth 4)\n"
+                "7. Impossible (αβ minmax depth 5)\n",
+                int,
+                lambda x: 1 <= x <= 7,
+                "Please enter a number from 1 to 7.",
+            )
+            
+            print('Game starting...')
+            
+            # Show empty board
+            display_board(board)
+            
+            # Game loop
+            while True:
+                if check_stalemate(board, turn):
+                    if turn == player_turn:
+                        print(f"You have no moves left. Draw!")
+                    else:
+                        print(f"The computer has no moves left. Draw!")
+                    break
+                
+                if turn == player_turn:
+                    # Player's turn
+                    move_col, move_pop = player_move(board, turn)
+                else:
+                    # Computer's turn
+                    print("\n Computer is thinking...\n")
+                    move_col, move_pop = computer_move(board, turn, comp_lvl)
+                
+                board = apply_move(board, turn, move_col, move_pop)
+                
+                display_board(board)
+                
+                if turn != player_turn:
+                    display_move(move_col, move_pop)
+                
+                if check_victory(board, turn):
+                    if turn == player_turn:
+                        print(f"You won against lvl. {comp_lvl}!")
+                    else:
+                        print(f"You lost to lvl. {comp_lvl}!2")
+                    break
+                
+                turn = next_player(turn)
+            
+        elif game_mode == 3:
+            # AIvAI
+            
+            print('\nStarting Computer vs Computer showcase\n')
+            
+            # Computer difficulty level.
+            comp1_lvl: int = get_validated_input(
+                "Select computer 1 difficulty:\n"
+                "1. Very easy (random)\n"
+                "2. Easy (naive)\n"
+                "3. Intermediate (heuristic)\n"
+                "4. Advanced (αβ minmax depth 2)\n"
+                "5. Hard (αβ minmax depth 3)\n"
+                "6. Very hard (αβ minmax depth 4)\n"
+                "7. Impossible (αβ minmax depth 5)\n",
+                int,
+                lambda x: 1 <= x <= 7,
+                "Please enter a number from 1 to 7.",
+            )
+            
+            comp2_lvl: int = get_validated_input(
+                "Select computer 2 difficulty:\n"
+                "1. Very easy (random)\n"
+                "2. Easy (naive)\n"
+                "3. Intermediate (heuristic)\n"
+                "4. Advanced (αβ minmax depth 2)\n"
+                "5. Hard (αβ minmax depth 3)\n"
+                "6. Very hard (αβ minmax depth 4)\n"
+                "7. Impossible (αβ minmax depth 5)\n",
+                int,
+                lambda x: 1 <= x <= 7,
+                "Please enter a number from 1 to 7.",
+            )
+            
+            print('Game starting...')
+            
+            if comp1_lvl >= 5 or comp2_lvl >= 5:
+                print("The AI levels are high... this may take a while.\n"
+                      "The moves made may not make any intuitive sense\n"
+                      "(e.g. AI may make a move that appears to be a free win, knowing it is already in a lost position)")
+            
+            # Show empty board
+            display_board(board)
+            
+            test_computer_vs_computer(
+                len(board)//7, 
+                comp1_lvl, 
+                comp2_lvl, 
+                eval_depth=max(comp1_lvl - 2, comp2_lvl - 2, 3) # Use evaluation depth of at least 3
+            )
     
 
 if __name__ == "__main__":
