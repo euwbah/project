@@ -1173,7 +1173,7 @@ def menu():
                     if turn == player_turn:
                         print(f"You won against lvl. {comp_lvl}!")
                     else:
-                        print(f"You lost to lvl. {comp_lvl}!2")
+                        print(f"You lost to lvl. {comp_lvl}!")
                     break
                 
                 turn = next_player(turn)
@@ -1223,9 +1223,9 @@ def menu():
             display_board(board)
             
             test_computer_vs_computer(
-                len(board)//7, 
-                comp1_lvl, 
-                comp2_lvl, 
+                len(board)//7,
+                comp1_lvl,
+                comp2_lvl,
                 eval_depth=max(comp1_lvl - 2, comp2_lvl - 2, 3) # Use evaluation depth of at least 3
             )
     
