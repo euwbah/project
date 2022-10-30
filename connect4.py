@@ -1,8 +1,6 @@
 import os
 import random
-import math
 from shutil import copyfile
-import shutil
 from time import sleep, time
 from typing import Any, Callable, List, Optional, Tuple
 
@@ -16,15 +14,6 @@ NOTE 1: The `board` list that represents board state will have 7 * c elements,
 NOTE 2: Since all functions are immutable/have no side effects, this should be a
         purely functional solution, i.e. no global mutable variables are required.
 '''
-
-# Enumerating player color and number.
-# Noughts goes first.
-NOUGHTS = 1 # (Yellow)
-CROSSES = 2 # (Red)
-
-COLS = 7 # There's always 7 columns according to implementation notes.
-
-MINMAX_DEPTH = 4 # Recommended by assignment spec.
 
 
 def next_player(who_played: int) -> int:
@@ -44,14 +33,14 @@ def next_player(who_played: int) -> int:
 
     assert 1 <= who_played <= 2, 'Unsupported player'
 
-    return NOUGHTS if who_played == CROSSES else CROSSES
+    return 1 if who_played == 2 else 2
 
 
 def display_player(turn: int) -> str:
     '''
     Convert player number to human-readable display
     '''
-    return "O (Yellow)" if turn == NOUGHTS else "X (Red)"
+    return "O (Yellow)" if turn == 1 else "X (Red)"
 
 
 def check_move(board: List[int], turn: int, col: int, pop: bool) -> bool:
@@ -75,7 +64,7 @@ def check_move(board: List[int], turn: int, col: int, pop: bool) -> bool:
 
     # Checking whether column is valid is to be done in the menu game UI code, not here.
     # If user-input is out-of-bounds here, this is an unexpected error.
-    assert 0 <= col < COLS, 'Invalid column'
+    assert 0 <= col < 7, 'Invalid column'
     
     col_pieces = board[col::7] # represents pieces of given `col` from bottom to top.
     
@@ -105,7 +94,7 @@ def check_stalemate(board: List[int], turn: int) -> bool:
 
     `True` if current `turn` player has no legal moves left. `False` otherwise.
     '''
-    for col in range(COLS):
+    for col in range(7):
         for pop in [True, False]:
             if check_move(board, turn, col, pop):
                 return False
@@ -137,7 +126,7 @@ def apply_move(board: List[int], turn: int, col: int, pop: bool) -> List[int]:
         # zero-indexed row number of the first occurence of 0 in given `col`
         row = next((i for i, x in enumerate(board[col::7]) if x == 0), None)
         assert row is not None, 'Invalid move! Column is full.' # should never happen
-        board_copy[row * COLS + col] = turn
+        board_copy[row * 7 + col] = turn
     else: # pop == True
         col_pieces = board[col::7] # represents pieces of given `col` from bottom to top.
         # pop the bottom piece, shift all contents down one row
@@ -180,7 +169,7 @@ def check_victory(board: List[int], who_played: int) -> int:
     #       both players wins, then the result is fully certain.
     noughts_wins = False
     crosses_wins = False
-    num_rows = len(board) // COLS
+    num_rows = len(board) // 7
 
     # Check horizontals (left to right)
     for row in range(num_rows):
@@ -190,29 +179,29 @@ def check_victory(board: List[int], who_played: int) -> int:
         streak_piece = 0 # the current player number which has N pieces in a row. 0 means no player.
         index_of_streak_start = 0 # the beginning index of the N pieces in a row
 
-        for col in range(COLS):
+        for col in range(7):
             piece = board[row * 7 + col]
             if piece != streak_piece: # streak is broken
                 if streak_piece != 0 and col - index_of_streak_start >= 4:
                     # 4 or more consecutive pieces = win
-                    if streak_piece == NOUGHTS:
+                    if streak_piece == 1:
                         noughts_wins = True
-                    elif streak_piece == CROSSES: # redundant elif, but here for future-proofing multiplayers if needed.
+                    elif streak_piece == 2: # redundant elif, but here for future-proofing multiplayers if needed.
                         crosses_wins = True
                 index_of_streak_start = col # reset streak index
                 streak_piece = piece
         
         # Check if row ended with a winning streak:
-        if streak_piece != 0 and COLS - index_of_streak_start >= 4:
-            if streak_piece == NOUGHTS:
+        if streak_piece != 0 and 7 - index_of_streak_start >= 4:
+            if streak_piece == 1:
                 noughts_wins = True
-            elif streak_piece == CROSSES:
+            elif streak_piece == 2:
                 crosses_wins = True
     
     # Checking verticals and diagonals only make sense if num_rows >= 4
     if num_rows >= 4:
         # Check verticals (bottom to top)
-        for col in range(COLS):
+        for col in range(7):
             # Check if there are 4 consecutive pieces of the same color
             # in a column.
 
@@ -223,26 +212,26 @@ def check_victory(board: List[int], who_played: int) -> int:
                 piece = board[row * 7 + col]
                 if piece != streak_piece:
                     if streak_piece != 0 and row - index_of_streak_start >= 4:
-                        if streak_piece == NOUGHTS:
+                        if streak_piece == 1:
                             noughts_wins = True
-                        elif streak_piece == CROSSES:
+                        elif streak_piece == 2:
                             crosses_wins = True
                     index_of_streak_start = row
                     streak_piece = piece
 
             # Check if end of column has a winning streak:
             if streak_piece != 0 and num_rows - index_of_streak_start >= 4:
-                if streak_piece == NOUGHTS:
+                if streak_piece == 1:
                     noughts_wins = True
-                elif streak_piece == CROSSES:
+                elif streak_piece == 2:
                     crosses_wins = True
 
         # Check up-left diagonals (bottom-right to top-left)
         
         # contains all starting bottom-right points such that diagonals have at least
         # 4 pieces in them.
-        starting_coords = [(0, x) for x in range(3, COLS)]
-        starting_coords += [(x, COLS - 1) for x in range(1, num_rows - 3)]
+        starting_coords = [(0, x) for x in range(3, 7)]
+        starting_coords += [(x, 7 - 1) for x in range(1, num_rows - 3)]
 
         # traverse one diagonal at a time from the above starting points
         for row, col in starting_coords:
@@ -254,9 +243,9 @@ def check_victory(board: List[int], who_played: int) -> int:
                 piece = board[(row + diagonal_idx) * 7 + col - diagonal_idx]
                 if piece != streak_piece:
                     if streak_piece != 0 and diagonal_idx - index_of_streak_start >= 4:
-                        if streak_piece == NOUGHTS:
+                        if streak_piece == 1:
                             noughts_wins = True
-                        elif streak_piece == CROSSES:
+                        elif streak_piece == 2:
                             crosses_wins = True
                     index_of_streak_start = diagonal_idx
                     streak_piece = piece
@@ -264,9 +253,9 @@ def check_victory(board: List[int], who_played: int) -> int:
 
             # Check if the last few pieces are a winning streak:
             if streak_piece != 0 and diagonal_idx - index_of_streak_start >= 4:
-                if streak_piece == NOUGHTS:
+                if streak_piece == 1:
                     noughts_wins = True
-                elif streak_piece == CROSSES:
+                elif streak_piece == 2:
                     crosses_wins = True
 
         # Check up-right diagonals (bottom-left to top-right)
@@ -274,7 +263,7 @@ def check_victory(board: List[int], who_played: int) -> int:
         # similar to above, contains all starting bottom-left points such that diagonals have at least
         # 4 pieces in them.
 
-        starting_coords = [(0, x) for x in range(COLS - 4, -1, -1)]
+        starting_coords = [(0, x) for x in range(7 - 4, -1, -1)]
         starting_coords += [(x, 0) for x in range(1, num_rows - 3)]
 
         for row, col in starting_coords:
@@ -282,13 +271,13 @@ def check_victory(board: List[int], who_played: int) -> int:
             index_of_streak_start = 0
             diagonal_idx = 0
 
-            while row + diagonal_idx < num_rows and col + diagonal_idx < COLS:
+            while row + diagonal_idx < num_rows and col + diagonal_idx < 7:
                 piece = board[(row + diagonal_idx) * 7 + col + diagonal_idx]
                 if piece != streak_piece:
                     if streak_piece != 0 and diagonal_idx - index_of_streak_start >= 4:
-                        if streak_piece == NOUGHTS:
+                        if streak_piece == 1:
                             noughts_wins = True
-                        elif streak_piece == CROSSES:
+                        elif streak_piece == 2:
                             crosses_wins = True
                     index_of_streak_start = diagonal_idx
                     streak_piece = piece
@@ -296,17 +285,17 @@ def check_victory(board: List[int], who_played: int) -> int:
 
             # Check if the last few pieces are a winning streak:
             if streak_piece != 0 and diagonal_idx - index_of_streak_start >= 4:
-                if streak_piece == NOUGHTS:
+                if streak_piece == 1:
                     noughts_wins = True
-                elif streak_piece == CROSSES:
+                elif streak_piece == 2:
                     crosses_wins = True
 
     if noughts_wins and crosses_wins:
         return next_player(who_played)
     elif noughts_wins:
-        return NOUGHTS
+        return 1
     elif crosses_wins:
-        return CROSSES
+        return 2
     
     return 0 # nobody wins
 
@@ -326,7 +315,7 @@ def find_immediate_win(board: List[int], turn: int) -> Optional[Tuple[int, bool]
     Either `(column: int, pop: bool)` if such a winning move can be found or
     `None` if no such move can be found.
     '''
-    for col in range(COLS):
+    for col in range(7):
         for pop in [True, False]:
             if not check_move(board, turn, col, pop):
                 continue
@@ -359,7 +348,7 @@ def find_immediate_win_multiple(board: List[int], turn: int) -> List[Tuple[int, 
 
     winning_moves = []
 
-    for col in range(COLS):
+    for col in range(7):
         for pop in [True, False]:
             if not check_move(board, turn, col, pop):
                 continue
@@ -461,7 +450,7 @@ def eval_cps(board: List[int], depth: int = 3) -> float:
             # No deeper recursion, return CPS score
             return cps
 
-        for col in range(COLS):
+        for col in range(7):
             for pop in [True, False]:
                 if not check_move(board, turn, col, pop):
                     continue
@@ -471,8 +460,8 @@ def eval_cps(board: List[int], depth: int = 3) -> float:
 
         return cps
 
-    tally += recurse_free_moves(board, depth, NOUGHTS)
-    tally -= recurse_free_moves(board, depth, CROSSES)
+    tally += recurse_free_moves(board, depth, 1)
+    tally -= recurse_free_moves(board, depth, 2)
 
     return tally
 
@@ -542,8 +531,8 @@ def find_best_move(board: List[int], player: int, starting_depth: int) -> Tuple[
         if winning_move is not None:
             # If there are winning moves, return the first one
             # (symbolizes a definite win in this state)
-            score = 100000 if turn == NOUGHTS else -100000
-            return score, (+100000 if turn == NOUGHTS else alpha), (-100000 if turn == CROSSES else beta), winning_move
+            score = 100000 if turn == 1 else -100000
+            return score, (+100000 if turn == 1 else alpha), (-100000 if turn == 2 else beta), winning_move
 
         # Iterate legal moves and recurse each scenario
 
@@ -559,10 +548,10 @@ def find_best_move(board: List[int], player: int, starting_depth: int) -> Tuple[
         # best score in favour of Cross is minimal
         # initialize best_score to be the opposite end of optimal score depending on 
         # which player to optimize for.
-        best_score = alpha if turn == NOUGHTS else beta
+        best_score = alpha if turn == 1 else beta
         
         for pop in [False, True]:
-            cols = list(range(COLS))
+            cols = list(range(7))
             # shuffle cols so that AI doesn't prefer making moves on one side of the board over the other
             random.shuffle(cols)
             for col in cols:
@@ -574,7 +563,7 @@ def find_best_move(board: List[int], player: int, starting_depth: int) -> Tuple[
                 # recursion step
                 score, _, _, _ = alphabeta_minmax(board_copy, next_player(turn), depth_remaining - 1, alpha, beta)
 
-                if turn == NOUGHTS:
+                if turn == 1:
                     # maximizing player
                     
                     # update best score
@@ -601,7 +590,7 @@ def find_best_move(board: List[int], player: int, starting_depth: int) -> Tuple[
                     # alpha represents the 'best' (i.e. maximal) score that NOUGHTS can guarantee at this point in time
                     alpha = max(alpha, best_score)
                     
-                elif turn == CROSSES:
+                elif turn == 2:
                     # minimizing player
                     if score < best_score:
                         best_score = score
@@ -640,6 +629,7 @@ def get_validated_input(
         validator_error_msg: Optional[str] = None) -> Any:
     '''
     A helper function to retrieve input data from user by prompt.
+    
     
     This function repeatedly asks the user for input until a valid input is given,
     checking for both type conversion errors and validation errors.
@@ -696,10 +686,10 @@ def player_move(board: List[int], turn: int) -> Tuple[int, bool]:
     while True:
         # represents the 0-indexed column number of the move
         col = get_validated_input(
-            f"{display_player(turn)}: enter column (1-{COLS}): ",
+            f"{display_player(turn)}: enter column (1-{7}): ",
             lambda x: int(x) - 1, # convert from 1-based to 0-based
-            lambda x: 0 <= x < COLS,
-            f"Please enter a number from 1 to {COLS}",
+            lambda x: 0 <= x < 7,
+            f"Please enter a number from 1 to {7}",
         )
         
         can_pop = check_move(board, turn, col, True)
@@ -766,7 +756,7 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
 
     if level == 1:
         # Trivial. Just make any legal random move.
-        cols = [col for col in range(COLS)]
+        cols = [col for col in range(7)]
         random.shuffle(cols)
 
         for col in cols:
@@ -799,7 +789,7 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
         
         # Otherwise, make any random move that doesn't allow opponent to immediately win.
 
-        cols = [col for col in range(COLS)]
+        cols = [col for col in range(7)]
         random.shuffle(cols)
 
         # Keeps track of the last legal move found:
@@ -845,16 +835,16 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
 
         if check_board_empty(board):
             # If board is empty, always play drop center column, that is always the best opening move.
-            return (COLS - 1) // 2, False
+            return (7 - 1) // 2, False
 
         best_move_so_far = None
         best_score_so_far = -999999
         
         # if CROSSES' turn, optimize for lowest CPS possible
         # invert CPS score later ensure that maximum best score ==> minimum CPS ==> best move for CROSSES.
-        turn_mult = 1 if turn == NOUGHTS else -1
+        turn_mult = 1 if turn == 1 else -1
 
-        for col in range(COLS):
+        for col in range(7):
             can_drop = check_move(board, turn, col, False)
             can_pop = check_move(board, turn, col, True)
 
@@ -883,7 +873,7 @@ def computer_move(board: List[int], turn: int, level: int) -> Tuple[int, bool]:
         
         if check_board_empty(board):
             # If board is empty, always play drop center column, that is always the best opening move.
-            return (COLS - 1) // 2, False
+            return (7 - 1) // 2, False
         
         _, _, _, best_move = find_best_move(board, turn, level - 2)
         
@@ -901,7 +891,7 @@ def display_board(board: List[int]):
     '''
     Takes in the board state and displays it by any means.
     '''
-    num_rows = len(board) // COLS
+    num_rows = len(board) // 7
     file_index = 1000 # trailing zeroes required as windows sort 111 as 'smaller than' 2 even though 111 > 2
 
     # Clear the meme board
@@ -927,18 +917,18 @@ def display_board(board: List[int]):
     print()
     for row in range(num_rows - 1, -1, -1): # the 'first' row represents the bottom, so start from the 'last' row
         print("    ", end="")
-        for col in range(COLS):
+        for col in range(7):
             # Trivial display: done in terminal
             # Meme display: done in file explorer in epic_board/ directory.
             #               pieces are displayed as image files.
-            piece = board[row * COLS + col]
+            piece = board[row * 7 + col]
             if piece == 0:
                 print("  .", end="")
                 copyfile_if_perms("imgs/blank.png", f"epic_board/{file_index}.png")
-            elif piece == NOUGHTS:
+            elif piece == 1:
                 print("  O", end="")
                 copyfile_if_perms("imgs/yellow.png", f"epic_board/{file_index}.png")
-            elif piece == CROSSES:
+            elif piece == 2:
                 print("  X", end="")
                 copyfile_if_perms("imgs/red.png", f"epic_board/{file_index}.png")
             
@@ -1086,7 +1076,7 @@ def menu():
         board: List[int] = [0]*num_rows*7
         
         # Player 1 starts first
-        turn: int = NOUGHTS
+        turn: int = 1
         
         if game_mode == 1:
             # PvP
